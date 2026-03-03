@@ -1,0 +1,22 @@
+[
+  {
+    "domain": "lab.care.ai",
+    "expiry": 1772561551,
+    "httpOnly": false,
+    "name": "_legacy_auth0.QGFGixLsfa6EVJHinSy5Ft4lbV7J3NPM.is.authenticated",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "true"
+  },
+  {
+    "domain": "lab.care.ai",
+    "expiry": 1772561551,
+    "httpOnly": false,
+    "name": "auth0.QGFGixLsfa6EVJHinSy5Ft4lbV7J3NPM.is.authenticated",
+    "path": "/",
+    "sameSite": "None",
+    "secure": true,
+    "value": "true"
+  }
+]

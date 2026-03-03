@@ -1,0 +1,56 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.9.6, pytest-7.0.0, pluggy-1.6.0 -- /Users/michael.guthrie/dev/selenium-python-project/venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/michael.guthrie/dev/selenium-python-project, configfile: pytest.ini
+collecting ... collected 1 item
+
+src/tests/test_login.py::test_login_success 
+1. Navigating to https://lab.care.ai/?scope=lab-auth-db
+   Current URL after navigation: https://dev-auth.care.ai/login?state=hKFo2SBNNEhfUHZFVjUwZlJEd3hOWnM1NXEtd3VTMEY3Rmtjb6FupWxvZ2luo3RpZNkgRlVqdWZIWks3RFY1YlA2bGRIcXJWMzk2VGJUWWJSWjejY2lk2SBRR0ZHaXhMc2ZhNkVWSkhpblN5NUZ0NGxiVjdKM05QTQ&client=QGFGixLsfa6EVJHinSy5Ft4lbV7J3NPM&protocol=oauth2&connection=lab-auth-db&redirect_uri=https%3A%2F%2Flab.care.ai%2Fcallback&scope=openid%20profile%20email&response_type=code&response_mode=query&nonce=bE5DSzNmbHZwQXhZbWE4S0ROSzdKNWkzTjNYbm1ld1N2bTNHTDhmTmsxUw%3D%3D&code_challenge=jwdO7qptHVf4oqNAU_oZ9Pdo6ouXthjOjbbbJgZYSoM&code_challenge_method=S256&auth0Client=eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjEuMjIuNiJ9
+   Page title: Welcome to IDA
+
+2. Attempting to fill login form...
+✓ Found username field using name = 'email'
+   ✗ username field not found after entry
+✓ Found password field using name = 'password'
+   ✗ password field not found after entry
+   screenshot saved to pre_submit.png
+✓ Found submit button using name = 'submit', clicking it...
+   Current URL after login_page.login(): https://dev-auth.care.ai/login?state=hKFo2SBNNEhfUHZFVjUwZlJEd3hOWnM1NXEtd3VTMEY3Rmtjb6FupWxvZ2luo3RpZNkgRlVqdWZIWks3RFY1YlA2bGRIcXJWMzk2VGJUWWJSWjejY2lk2SBRR0ZHaXhMc2ZhNkVWSkhpblN5NUZ0NGxiVjdKM05QTQ&client=QGFGixLsfa6EVJHinSy5Ft4lbV7J3NPM&protocol=oauth2&connection=lab-auth-db&redirect_uri=https%3A%2F%2Flab.care.ai%2Fcallback&scope=openid%20profile%20email&response_type=code&response_mode=query&nonce=bE5DSzNmbHZwQXhZbWE4S0ROSzdKNWkzTjNYbm1ld1N2bTNHTDhmTmsxUw%3D%3D&code_challenge=jwdO7qptHVf4oqNAU_oZ9Pdo6ouXthjOjbbbJgZYSoM&code_challenge_method=S256&auth0Client=eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjEuMjIuNiJ9
+   Page title: Welcome to IDA
+
+3. Attempting Google OAuth flow...
+   Current URL after Google OAuth: https://dev-auth.care.ai/login?state=hKFo2SBNNEhfUHZFVjUwZlJEd3hOWnM1NXEtd3VTMEY3Rmtjb6FupWxvZ2luo3RpZNkgRlVqdWZIWks3RFY1YlA2bGRIcXJWMzk2VGJUWWJSWjejY2lk2SBRR0ZHaXhMc2ZhNkVWSkhpblN5NUZ0NGxiVjdKM05QTQ&client=QGFGixLsfa6EVJHinSy5Ft4lbV7J3NPM&protocol=oauth2&connection=lab-auth-db&redirect_uri=https%3A%2F%2Flab.care.ai%2Fcallback&scope=openid%20profile%20email&response_type=code&response_mode=query&nonce=bE5DSzNmbHZwQXhZbWE4S0ROSzdKNWkzTjNYbm1ld1N2bTNHTDhmTmsxUw%3D%3D&code_challenge=jwdO7qptHVf4oqNAU_oZ9Pdo6ouXthjOjbbbJgZYSoM&code_challenge_method=S256&auth0Client=eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjEuMjIuNiJ9
+
+4. Attempting Auth0 continue handler...
+
+5. Waiting for redirects...
+
+6. Looking for 'Command Center' text...
+
+⏳ OAuth flow reached Auth0 login page (intermediate step).
+Current URL: https://dev-auth.care.ai/login?state=hKFo2SBNNEhfUHZFVjUwZlJEd3hOWnM1NXEtd3VTMEY3Rmtjb6FupWxvZ2luo3RpZNkgRlVqdWZIWks3RFY1YlA2bGRIcXJWMzk2VGJUWWJSWjejY2lk2SBRR0ZHaXhMc2ZhNkVWSkhpblN5NUZ0NGxiVjdKM05QTQ&client=QGFGixLsfa6EVJHinSy5Ft4lbV7J3NPM&protocol=oauth2&connection=lab-auth-db&redirect_uri=https%3A%2F%2Flab.care.ai%2Fcallback&scope=openid%20profile%20email&response_type=code&response_mode=query&nonce=bE5DSzNmbHZwQXhZbWE4S0ROSzdKNWkzTjNYbm1ld1N2bTNHTDhmTmsxUw%3D%3D&code_challenge=jwdO7qptHVf4oqNAU_oZ9Pdo6ouXthjOjbbbJgZYSoM&code_challenge_method=S256&auth0Client=eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjEuMjIuNiJ9
+Page title: Welcome to IDA
+✓ Form submission successful - redirected to OAuth provider (Auth0)
+  Full OAuth flow requires completing Google sign-in + Auth0 consent interactively.
+PASSED
+
+=============================== warnings summary ===============================
+venv/lib/python3.9/site-packages/selenium/webdriver/remote/remote_connection.py:24
+  /Users/michael.guthrie/dev/selenium-python-project/venv/lib/python3.9/site-packages/selenium/webdriver/remote/remote_connection.py:24: DeprecationWarning: 'urllib3[secure]' extra is deprecated and will be removed in a future release of urllib3 2.x. Read more in this issue: https://github.com/urllib3/urllib3/issues/2680
+    import urllib3
+
+src/tests/test_login.py::test_login_success
+  /Users/michael.guthrie/dev/selenium-python-project/src/drivers/webdriver_factory.py:32: DeprecationWarning: executable_path has been deprecated, please pass in a Service object
+    return webdriver.Edge('/usr/local/bin/msedgedriver', options=options)
+
+src/tests/test_login.py: 22 warnings
+  /Users/michael.guthrie/dev/selenium-python-project/venv/lib/python3.9/site-packages/selenium/webdriver/remote/remote_connection.py:441: DeprecationWarning: HTTPResponse.getheader() is deprecated and will be removed in urllib3 v2.1.0. Instead use HTTPResponse.headers.get(name, default).
+    if resp.getheader('Content-Type'):
+
+src/tests/test_login.py: 22 warnings
+  /Users/michael.guthrie/dev/selenium-python-project/venv/lib/python3.9/site-packages/selenium/webdriver/remote/remote_connection.py:442: DeprecationWarning: HTTPResponse.getheader() is deprecated and will be removed in urllib3 v2.1.0. Instead use HTTPResponse.headers.get(name, default).
+    content_type = resp.getheader('Content-Type').split(';')
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================== 1 passed, 46 warnings in 76.79s (0:01:16) ===================
