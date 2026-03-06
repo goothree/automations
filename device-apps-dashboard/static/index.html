@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Device Apps – Esper vs Confluence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --text-muted: #a1a1aa;
+      --accent: #a78bfa;
+      --accent-dim: #7c3aed;
+      --success: #4ade80;
+      --warn: #fbbf24;
+      --error: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .layout {
+      width: 100%;
+      max-width: min(1600px, 96vw);
+      margin: 0 auto;
+      padding: clamp(1rem, 2vw, 2rem);
+    }
+    h1 {
+      font-weight: 600;
+      font-size: 1.75rem;
+      margin: 0 0 0.5rem 0;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+    }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .toolbar input {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      min-width: 280px;
+    }
+    .toolbar input::placeholder { color: var(--text-muted); opacity: 0.8; }
+    .toolbar select {
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      min-width: 140px;
+    }
+    button {
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+    }
+    button:hover { filter: brightness(1.1); }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .comparison-table th,
+    .comparison-table td {
+      padding: 0.6rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .comparison-table th {
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .comparison-table tr:last-child td { border-bottom: none; }
+    .comparison-table tbody tr:hover td { background: rgba(167, 139, 250, 0.05); }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .badge-match { background: rgba(74, 222, 128, 0.2); color: var(--success); }
+    .badge-mismatch { background: rgba(251, 191, 36, 0.2); color: var(--warn); }
+    .badge-only-device { background: rgba(167, 139, 250, 0.2); color: var(--accent); }
+    .badge-only-expected { background: rgba(248, 113, 113, 0.2); color: var(--error); }
+    .loading, .error-msg, .empty-msg {
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .error-msg { color: var(--error); background: rgba(248, 113, 113, 0.1); border-radius: 8px; margin: 1rem; }
+    .spinner {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.85em; }
+    .links {
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .links a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .links a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <h1>Device Apps Comparison</h1>
+    <p class="subtitle">Enter a device ID to compare apps installed on the device (Esper) with the expected app list (Confluence Device Apps page).</p>
+
+    <div class="toolbar">
+      <label for="deviceId" style="color: var(--text-muted); font-size: 0.9rem;">Device ID</label>
+      <input type="text" id="deviceId" placeholder="e.g. device UUID from Esper" />
+      <label for="section" style="color: var(--text-muted); font-size: 0.9rem;">Section</label>
+      <select id="section" title="Confluence table section (R2C, R2Pro, R2U)">
+        <option value="">—</option>
+      </select>
+      <label for="versionColumn" style="color: var(--text-muted); font-size: 0.9rem;">Expected version (release)</label>
+      <select id="versionColumn" title="Confluence table column to use as expected version">
+        <option value="">—</option>
+      </select>
+      <button type="button" id="btnCompare" onclick="runCompare()">Compare</button>
+      <span id="statusHint" class="subtitle" style="margin: 0; font-size: 0.85rem;"></span>
+    </div>
+    <p class="subtitle" style="margin-top: -0.5rem; font-size: 0.85rem;">
+      Esper: <a href="https://careai.esper.cloud/groups" target="_blank" rel="noopener">careai.esper.cloud</a> ·
+      Confluence: <a href="https://careai.atlassian.net/wiki/spaces/~712020f8cb7a01208a478ca0225f24c07734f8/pages/2097741847/Device+Apps" target="_blank" rel="noopener">Device Apps page</a>
+    </p>
+
+    <div id="result" style="display: none;">
+      <div class="card">
+        <h2>Comparison (Device vs Expected)</h2>
+        <div id="comparisonWrap"></div>
+      </div>
+    </div>
+    <div id="loading" class="loading" style="display: none;">
+      <span class="spinner"></span> Fetching device apps from Esper and expected apps from Confluence…
+    </div>
+    <div id="error" class="error-msg" style="display: none;"></div>
+  </div>
+
+  <script>
+    const deviceIdEl = document.getElementById('deviceId');
+    const sectionEl = document.getElementById('section');
+    const versionColumnEl = document.getElementById('versionColumn');
+    const btnCompare = document.getElementById('btnCompare');
+    const statusHint = document.getElementById('statusHint');
+    const resultEl = document.getElementById('result');
+    const comparisonWrap = document.getElementById('comparisonWrap');
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error');
+    var confluenceMeta = { sections: [] };
+
+    function showLoading(show) {
+      loadingEl.style.display = show ? 'block' : 'none';
+      resultEl.style.display = show ? 'none' : (comparisonWrap.innerHTML ? 'block' : 'none');
+      errorEl.style.display = 'none';
+    }
+
+    function showError(msg) {
+      loadingEl.style.display = 'none';
+      resultEl.style.display = 'none';
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+
+    function statusBadgeClass(s) {
+      if (s === 'match') return 'badge-match';
+      if (s === 'version_mismatch') return 'badge-mismatch';
+      if (s === 'only_on_device') return 'badge-only-device';
+      return 'badge-only-expected';
+    }
+
+    function statusLabel(s) {
+      if (s === 'match') return 'Match';
+      if (s === 'version_mismatch') return 'Version mismatch';
+      if (s === 'only_on_device') return 'Only on device';
+      return 'Only in expected';
+    }
+
+    function updateSectionDropdown(sections, selected) {
+      sections = sections || [];
+      const sel = sectionEl;
+      sel.innerHTML = '';
+      if (sections.length === 0) {
+        sel.options.add(new Option('—', ''));
+        return;
+      }
+      sections.forEach(function (s) {
+        const name = s.name || s;
+        sel.options.add(new Option(name, name));
+      });
+      const want = selected || (sections[0] && (sections[0].name || sections[0]));
+      sel.value = want || (sections[0] && (sections[0].name || sections[0])) || '';
+    }
+
+    function updateVersionDropdownFromMeta() {
+      var sec = (sectionEl.value || '').trim();
+      var version_columns = [];
+      confluenceMeta.sections.forEach(function (s) {
+        if ((s.name || '') === sec) {
+          version_columns = s.version_columns || [];
+        }
+      });
+      if (!version_columns.length && confluenceMeta.sections.length) {
+        version_columns = confluenceMeta.sections[0].version_columns || [];
+      }
+      updateVersionColumnDropdown(version_columns, version_columns[version_columns.length - 1]);
+    }
+
+    function updateVersionColumnDropdown(version_columns, selected) {
+      version_columns = version_columns || [];
+      const sel = versionColumnEl;
+      const currentVal = sel.value;
+      sel.innerHTML = '';
+      if (version_columns.length === 0) {
+        sel.options.add(new Option('—', ''));
+        return;
+      }
+      version_columns.forEach(function (label) {
+        sel.options.add(new Option(label, label));
+      });
+      const want = selected || version_columns[version_columns.length - 1];
+      if (version_columns.indexOf(want) !== -1) {
+        sel.value = want;
+      } else if (version_columns.length) {
+        sel.value = version_columns[version_columns.length - 1];
+      }
+    }
+
+    function renderComparison(data) {
+      const sections = data.sections || [];
+      const section = data.section || '';
+      const version_columns = data.version_columns || [];
+      const version_column = data.version_column || '';
+      if (sections.length) {
+        updateSectionDropdown(sections, section);
+      }
+      if (version_columns.length) {
+        updateVersionColumnDropdown(version_columns, version_column);
+      }
+      const rows = data.comparison || [];
+      const esperCount = data.esper_apps_count != null ? data.esper_apps_count : (data.esper_apps || []).length;
+      const expectedCount = data.expected_apps_count != null ? data.expected_apps_count : (data.expected_apps || []).length;
+      if (rows.length === 0) {
+        let msg = 'No apps to compare.';
+        msg += ' Device (Esper): ' + esperCount + ' app' + (esperCount !== 1 ? 's' : '') + '.';
+        msg += ' Expected (Confluence): ' + expectedCount + ' app' + (expectedCount !== 1 ? 's' : '') + '.';
+        if (esperCount === 0 && expectedCount === 0) {
+          msg += ' Check device ID and Confluence page, or ensure the device has reported its app list to Esper.';
+        } else if (esperCount === 0) {
+          msg += ' Esper returned no apps for this device — the device may not have synced its app list yet.';
+        } else {
+          msg += ' Confluence page may have no table or different column names.';
+        }
+        comparisonWrap.innerHTML = '<div class="empty-msg">' + escapeHtml(msg) + '</div>';
+        resultEl.style.display = 'block';
+        return;
+      }
+      var sectionLabel = section ? ' ' + escapeHtml(section) : '';
+      var releaseLabel = version_column ? ' (release: ' + escapeHtml(version_column) + ')' : '';
+      let html = '<p class="subtitle" style="margin:0 0 0.5rem 0;font-size:0.85rem">Comparing to Confluence' + sectionLabel + releaseLabel + '</p>';
+      html += '<table class="comparison-table"><thead><tr>' +
+        '<th>App name</th><th>Package</th><th>Device version</th><th>Confluence version</th><th>Status</th></tr></thead><tbody>';
+      rows.forEach(function (r) {
+        html += '<tr><td>' + escapeHtml(r.app_name) + '</td><td class="mono">' + escapeHtml(r.package_name) + '</td>' +
+          '<td>' + escapeHtml(r.esper_version) + '</td><td>' + escapeHtml(r.expected_version) + '</td>' +
+          '<td><span class="badge ' + statusBadgeClass(r.status) + '">' + statusLabel(r.status) + '</span></td></tr>';
+      });
+      html += '</tbody></table>';
+      comparisonWrap.innerHTML = html;
+      resultEl.style.display = 'block';
+    }
+
+    function escapeHtml(s) {
+      if (s == null) return '';
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    function runCompare() {
+      const deviceId = (deviceIdEl.value || '').trim();
+      if (!deviceId) {
+        statusHint.textContent = 'Enter a device ID.';
+        return;
+      }
+      statusHint.textContent = '';
+      btnCompare.disabled = true;
+      showLoading(true);
+
+      var url = '/api/compare?device_id=' + encodeURIComponent(deviceId);
+      var sec = (sectionEl.value || '').trim();
+      var ver = (versionColumnEl.value || '').trim();
+      if (sec) { url += '&section=' + encodeURIComponent(sec); }
+      if (ver) { url += '&version_column=' + encodeURIComponent(ver); }
+      fetch(url)
+        .then(function (res) { return res.json().then(function (j) { return { ok: res.ok, data: j }; }); })
+        .then(function (r) {
+          btnCompare.disabled = false;
+          showLoading(false);
+          if (r.data.error && !r.data.comparison) {
+            showError(r.data.error);
+            return;
+          }
+          if (!r.ok && r.data.error) {
+            statusHint.textContent = r.data.error;
+          }
+          renderComparison(r.data);
+        })
+        .catch(function (err) {
+          btnCompare.disabled = false;
+          showLoading(false);
+          showError('Request failed: ' + (err.message || err));
+        });
+    }
+
+    deviceIdEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') runCompare();
+    });
+    sectionEl.addEventListener('change', function () {
+      updateVersionDropdownFromMeta();
+      if (deviceIdEl.value.trim()) runCompare();
+    });
+    versionColumnEl.addEventListener('change', function () {
+      if (deviceIdEl.value.trim()) runCompare();
+    });
+
+    function loadConfluenceMeta() {
+      fetch('/api/confluence-meta')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          confluenceMeta = data;
+          var sections = data.sections || [];
+          if (data.error) {
+            statusHint.textContent = (statusHint.textContent ? statusHint.textContent + ' · ' : '') + 'Confluence: ' + data.error;
+            return;
+          }
+          if (sections.length) {
+            updateSectionDropdown(sections, sections[0].name);
+            updateVersionColumnDropdown(sections[0].version_columns || [], null);
+          }
+        })
+        .catch(function () {});
+    }
+
+    // Load status and Confluence meta (sections + version columns) on page load
+    fetch('/api/status').then(function (r) { return r.json(); }).then(function (s) {
+      const parts = [];
+      if (s.esper_configured) parts.push('Esper OK');
+      else parts.push('Esper not configured');
+      if (s.confluence_configured) parts.push('Confluence OK');
+      else parts.push('Confluence not configured');
+      statusHint.textContent = parts.join(' · ');
+    }).catch(function () {});
+    loadConfluenceMeta();
+  </script>
+</body>
+</html>

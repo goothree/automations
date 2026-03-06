@@ -16,7 +16,7 @@ def driver():
     """Initialize and tear down the webdriver instance."""
     factory = WebDriverFactory(settings.browser, headless=settings.headless)
     driver_instance = factory.create_driver()
-    driver_instance.maximize_window()
+    driver_instance.set_window_size(1920, 1080)
     yield driver_instance
     driver_instance.quit()
 
@@ -73,10 +73,19 @@ def test_login_success(driver):
         driver.get('https://lab.care.ai/command-center')
         time.sleep(1)
 
-    # final check: ensure we're on the command-center URL
-    current_url = driver.current_url
-    if '/command-center' in current_url:
-        print(f'✅ SUCCESS! Reached command-center URL: {current_url}')
-    else:
-        raise AssertionError(f'Expected to be on command-center page, got {current_url}')
+    # final check: ensure Command Center page has loaded by finding the menu link in the UI
+    # (faster and more reliable than URL check — we wait for the actual tab/label to appear)
+    command_center_link_xpath = (
+        "//a[contains(@class,'menu__link') and contains(.,'Command Center') "
+        "and .//span[contains(@class,'icon-command-center')]]"
+    )
+    try:
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, command_center_link_xpath))
+        )
+        print('✅ SUCCESS! Command Center page loaded (menu link visible)')
+    except Exception as e:
+        raise AssertionError(
+            f'Expected Command Center page (menu link with icon-command-center), got: {driver.current_url}'
+        ) from e
 

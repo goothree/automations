@@ -1,10 +1,13 @@
 """Helper functions for virtual monitoring tests."""
 
+import os
+import random
+import time
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import time
 
 
 def disconnect_active_rooms(driver):
@@ -419,27 +422,27 @@ def select_facility_in_modal(driver, facility_name):
     except Exception:
         print("⚠️ Could not confirm modal appearance, continuing anyway...")
     
-    time.sleep(0.5)
+    time.sleep(0.25)
 
     def _commit_facility_selection(facility_trigger=None):
         """Try to commit the facility selection (dropdown may only apply on close or on a button)."""
-        time.sleep(0.3)
+        time.sleep(0.15)
         # 1. Press Enter (focus may be on the option)
         try:
             from selenium.webdriver.common.action_chains import ActionChains
             ActionChains(driver).send_keys(Keys.ENTER).perform()
-            time.sleep(0.2)
+            time.sleep(0.1)
         except Exception:
             pass
         # 2. Click the Facility trigger again to close dropdown (many UIs commit on close)
         if facility_trigger is not None:
             try:
                 facility_trigger.click()
-                time.sleep(0.3)
+                time.sleep(0.15)
             except Exception:
                 try:
                     driver.execute_script("arguments[0].click();", facility_trigger)
-                    time.sleep(0.3)
+                    time.sleep(0.15)
                 except Exception:
                     pass
         # 3. Look for Select / Apply / Done button in the modal
@@ -452,7 +455,7 @@ def select_facility_in_modal(driver, facility_name):
                 for b in btns:
                     if b.is_displayed() and btn_text.lower() in (b.text or "").lower():
                         b.click()
-                        time.sleep(0.3)
+                        time.sleep(0.15)
                         return
             except Exception:
                 continue
@@ -462,32 +465,32 @@ def select_facility_in_modal(driver, facility_name):
         from selenium.webdriver.common.action_chains import ActionChains
         try:
             elem.click()
-            time.sleep(0.2)
+            time.sleep(0.1)
             _commit_facility_selection(facility_trigger)
             print(f"✅ Selected facility: {description}")
-            time.sleep(0.5)
+            time.sleep(0.25)
             return True
         except Exception:
             pass
         try:
             driver.execute_script("arguments[0].click();", elem)
-            time.sleep(0.2)
+            time.sleep(0.1)
             _commit_facility_selection(facility_trigger)
             print(f"✅ Selected facility (via JS): {description}")
-            time.sleep(0.5)
+            time.sleep(0.25)
             return True
         except Exception:
             pass
         try:
             ActionChains(driver).double_click(elem).perform()
-            time.sleep(0.2)
+            time.sleep(0.1)
             _commit_facility_selection(facility_trigger)
             print(f"✅ Selected facility (double-click): {description}")
             return True
         except Exception:
             try:
                 driver.execute_script("var e=arguments[0]; var ev=new MouseEvent('dblclick',{bubbles:true}); e.dispatchEvent(ev);", elem)
-                time.sleep(0.2)
+                time.sleep(0.1)
                 _commit_facility_selection(facility_trigger)
                 print(f"✅ Selected facility (double-click JS): {description}")
                 return True
@@ -527,35 +530,35 @@ def select_facility_in_modal(driver, facility_name):
                 txt = (tr.text or "").strip()
                 if trigger_text.lower() in txt.lower() and len(txt) < 80:
                     tr.click()
-                    time.sleep(0.8)
-                    # A) Type to filter then Enter (ng-select supports search)
+                    time.sleep(0.35)
+                    # A) Type to filter then Enter (ng-select supports search) — fastest path
                     try:
                         search_input = driver.find_element(By.CSS_SELECTOR, "ng-dropdown-panel input, .ng-dropdown-panel input, [role='listbox'] input, .ng-select input")
                         search_input.clear()
                         search_input.send_keys("Vineland Rack Room")
-                        time.sleep(0.5)
+                        time.sleep(0.2)
                         search_input.send_keys(Keys.ENTER)
                         print("✅ Selected facility (ng-select type + Enter): Vineland Rack Room")
-                        time.sleep(0.5)
+                        time.sleep(0.25)
                         return
                     except Exception:
                         pass
                     try:
                         ActionChains(driver).send_keys("Vineland Rack Room").send_keys(Keys.ENTER).perform()
-                        time.sleep(0.4)
+                        time.sleep(0.2)
                         print("✅ Selected facility (ng-select keys + Enter): Vineland Rack Room")
                         return
                     except Exception:
                         pass
-                    # B) Arrow down to index 80 (Vineland Rack Room in the list you shared) then Enter
+                    # B) Arrow down to index 80 (Vineland Rack Room in the list) then Enter — minimal delay
                     try:
                         for _ in range(80):
                             ActionChains(driver).send_keys(Keys.ARROW_DOWN).perform()
-                            time.sleep(0.02)
-                        time.sleep(0.15)
+                            time.sleep(0.01)
+                        time.sleep(0.1)
                         ActionChains(driver).send_keys(Keys.ENTER).perform()
                         print("✅ Selected facility (ng-select arrow 80 + Enter): Vineland Rack Room")
-                        time.sleep(0.5)
+                        time.sleep(0.25)
                         return
                     except Exception:
                         pass
@@ -571,7 +574,7 @@ def select_facility_in_modal(driver, facility_name):
                                 continue
                             try:
                                 driver.execute_script("arguments[0].scrollIntoView({block:'center'});", opt)
-                                time.sleep(0.2)
+                                time.sleep(0.1)
                             except Exception:
                                 pass
                             # ng-select often listens for mousedown; dispatch full sequence
@@ -583,7 +586,7 @@ def select_facility_in_modal(driver, facility_name):
                                     return False
                             if try_select():
                                 print("✅ Selected facility (ng-select click): Vineland Rack Room")
-                                time.sleep(0.5)
+                                time.sleep(0.25)
                                 return
                             try:
                                 driver.execute_script("""
@@ -596,22 +599,22 @@ def select_facility_in_modal(driver, facility_name):
                                         el.dispatchEvent(ev);
                                     });
                                 """, opt)
-                                time.sleep(0.3)
+                                time.sleep(0.15)
                                 print("✅ Selected facility (ng-select mouse events): Vineland Rack Room")
                                 return
                             except Exception:
                                 pass
                             try:
                                 from selenium.webdriver.common.action_chains import ActionChains
-                                ActionChains(driver).move_to_element(opt).pause(0.1).click().perform()
-                                time.sleep(0.3)
+                                ActionChains(driver).move_to_element(opt).pause(0.05).click().perform()
+                                time.sleep(0.15)
                                 print("✅ Selected facility (ng-select ActionChains): Vineland Rack Room")
                                 return
                             except Exception:
                                 pass
                             try:
                                 driver.execute_script("arguments[0].click();", opt)
-                                time.sleep(0.3)
+                                time.sleep(0.15)
                                 print("✅ Selected facility (ng-select JS click): Vineland Rack Room")
                                 return
                             except Exception:
@@ -627,7 +630,7 @@ def select_facility_in_modal(driver, facility_name):
                                         el.dispatchEvent(ev);
                                     });
                                 """, span)
-                                time.sleep(0.3)
+                                time.sleep(0.15)
                                 print("✅ Selected facility (ng-select span mouse events): Vineland Rack Room")
                                 return
                             except Exception:
@@ -658,7 +661,7 @@ def select_facility_in_modal(driver, facility_name):
                 txt = (tr.text or "").strip()
                 if trigger_text.lower() in txt.lower() and len(txt) < 80:
                     tr.click()
-                    time.sleep(0.8)
+                    time.sleep(0.35)
                     # Find all options in the dropdown (prefer within modal/listbox)
                     opts = search_root.find_elements(By.XPATH, ".//*[@role='option']")
                     if not opts:
@@ -679,21 +682,21 @@ def select_facility_in_modal(driver, facility_name):
                         # Try: focus option and send Enter to it (some dropdowns commit only when option receives key)
                         try:
                             driver.execute_script("arguments[0].focus();", opt)
-                            time.sleep(0.1)
+                            time.sleep(0.05)
                             opt.send_keys(Keys.ENTER)
                             print("✅ Selected facility (focus + Enter on option): Vineland Rack Room")
-                            time.sleep(0.5)
+                            time.sleep(0.25)
                             return
                         except Exception:
                             pass
                         # Try: arrow down to the option, then Enter
                         for _ in range(target_index):
                             ActionChains(driver).send_keys(Keys.ARROW_DOWN).perform()
-                            time.sleep(0.08)
-                        time.sleep(0.2)
+                            time.sleep(0.03)
+                        time.sleep(0.1)
                         ActionChains(driver).send_keys(Keys.ENTER).perform()
                         print("✅ Selected facility (keyboard): Vineland Rack Room")
-                        time.sleep(0.5)
+                        time.sleep(0.25)
                         return
                     # Fallback: keep arrowing down until active element contains Vineland, then Enter
                     body = driver.find_element(By.TAG_NAME, "body")
@@ -703,12 +706,12 @@ def select_facility_in_modal(driver, facility_name):
                             if active and "vineland" in (active.get_attribute("innerText") or active.text or "").lower():
                                 ActionChains(driver).send_keys(Keys.ENTER).perform()
                                 print("✅ Selected facility (keyboard nav): Vineland Rack Room")
-                                time.sleep(0.5)
+                                time.sleep(0.25)
                                 return
                         except Exception:
                             pass
                         body.send_keys(Keys.ARROW_DOWN)
-                        time.sleep(0.1)
+                        time.sleep(0.05)
                     break
             else:
                 continue
@@ -729,7 +732,7 @@ def select_facility_in_modal(driver, facility_name):
                 txt = (tr.text or "").strip()
                 if trigger_text.lower() in txt.lower() and len(txt) < 100:
                     tr.click()
-                    time.sleep(0.7)
+                    time.sleep(0.35)
                     facility_trigger = tr  # use to close dropdown after selection
                     for opt_xpath in [
                         "//*[@role='option'][contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'vineland')]",
@@ -785,7 +788,7 @@ def select_facility_in_modal(driver, facility_name):
                     if not tr.is_displayed():
                         continue
                     tr.click()
-                    time.sleep(0.5)
+                    time.sleep(0.3)
                     facility_trigger = tr
                     for xpath in [
                         f"//*[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{facility_name_lower}')]",
@@ -814,7 +817,7 @@ def select_facility_in_modal(driver, facility_name):
                         ActionChains(driver).send_keys(Keys.ESCAPE).perform()
                     except Exception:
                         pass
-                    time.sleep(0.2)
+                    time.sleep(0.1)
             except Exception:
                 continue
     except Exception:
@@ -834,14 +837,14 @@ def select_facility_in_modal(driver, facility_name):
             if facility_name_lower in option.text.lower() or all(b in option.text.lower() for b in search_bits):
                 select.select_by_visible_text(option.text)
                 print(f"✅ Selected facility via select: {option.text}")
-                time.sleep(0.5)
+                time.sleep(0.25)
                 return
         for option in select.options:
             val = (option.get_attribute('value') or '').lower()
             if facility_name_lower in val or all(b in val for b in search_bits):
                 select.select_by_value(option.get_attribute('value'))
                 print(f"✅ Selected facility by value: {option.get_attribute('value')}")
-                time.sleep(0.5)
+                time.sleep(0.25)
                 return
     except Exception:
         pass
@@ -875,7 +878,7 @@ def select_facility_in_modal(driver, facility_name):
                 inp.click()
                 inp.clear()
                 inp.send_keys("vineland")
-                time.sleep(0.5)
+                time.sleep(0.25)
                 # Then click the matching option that appears
                 for opt_sel in ["//*[@role='option'][contains(., 'vineland')]", "//*[contains(., 'vineland rack')]"]:
                     opts = driver.find_elements(By.XPATH, opt_sel)
@@ -1095,10 +1098,11 @@ def open_add_new_room_section(driver):
 
 def open_area_list_and_select_online_rooms(driver):
     """
-    Open the Area list in the Add Room modal, then for each area item that shows
-    a green cloud icon (room is online), click the box on the right to select it.
+    Open the Area list in the Add Room modal, then select up to the first 12
+    area items that show a green cloud icon (room is online) by clicking the
+    box on the right for each.
     """
-    time.sleep(0.3)
+    time.sleep(0.2)
     # Open the Area list (click "Area" label or "All" / dropdown trigger)
     area_triggers = [
         "//*[contains(translate(., 'AREA', 'area'), 'area') and not(contains(., 'Facility'))]",
@@ -1117,7 +1121,7 @@ def open_area_list_and_select_online_rooms(driver):
                 el.click()
                 opened = True
                 print("✅ Opened Area list")
-                time.sleep(0.5)
+                time.sleep(0.25)
                 break
             if opened:
                 break
@@ -1126,7 +1130,7 @@ def open_area_list_and_select_online_rooms(driver):
     if not opened:
         print("⚠️ Could not open Area list; attempting to find area items anyway")
 
-    time.sleep(0.4)
+    time.sleep(0.2)
 
     def _is_checked(box):
         """True if checkbox/control is already checked (we should NOT click it when adding rooms - would disconnect)."""
@@ -1140,6 +1144,21 @@ def open_area_list_and_select_online_rooms(driver):
             return False
         except Exception:
             return False
+
+    # Text that indicates a row is a patient/resident, not a room — do not add these.
+    NON_ROOM_ROW_TEXT = frozenset({
+        "test user", "patient", "resident", "guest", "occupant",
+    })
+
+    def _is_room_row(row_text):
+        """True if row_text looks like a room/area name; False if it's a patient or other non-room."""
+        t = (row_text or "").strip().lower()
+        if not t or len(t) < 2:
+            return False
+        # Skip rows that are exactly a known patient/non-room label (e.g. "Test User").
+        if t in NON_ROOM_ROW_TEXT:
+            return False
+        return True
 
     def _scroll_area_list(steps=1):
         """Scroll the area list container so more items load (virtualized/long lists)."""
@@ -1159,7 +1178,7 @@ def open_area_list_and_select_online_rooms(driver):
                             continue
                         try:
                             driver.execute_script("arguments[0].scrollTop += %d;" % scroll_amount, el)
-                            time.sleep(0.25)
+                            time.sleep(0.12)
                         except Exception:
                             pass
             except Exception:
@@ -1174,7 +1193,7 @@ def open_area_list_and_select_online_rooms(driver):
     ]
 
     selected_count = 0
-    max_select = 100
+    max_select = 12
     scroll_passes = 0
     max_scroll_passes = 8
     clicked_ids = set()
@@ -1196,7 +1215,7 @@ def open_area_list_and_select_online_rooms(driver):
                         if not row or row.get_attribute("tagName") == "body":
                             break
                         row_text = (row.text or "").strip()
-                        if len(row_text) > 3 and len(row_text) < 150:
+                        if len(row_text) > 3 and len(row_text) < 150 and _is_room_row(row_text):
                             for box_xpath in [
                                 ".//input[@type='checkbox']",
                                 ".//*[@role='checkbox']",
@@ -1225,8 +1244,8 @@ def open_area_list_and_select_online_rooms(driver):
                                                 clicked_ids.add(box.get_attribute("id") or id(box))
                                             except Exception:
                                                 pass
-                                            print(f"   Added online area ({selected_count})")
-                                            time.sleep(0.2)
+                                            print(f"   Added room to monitoring session ({selected_count}): {row_text}")
+                                            time.sleep(0.08)
                                             break
                                         except Exception:
                                             try:
@@ -1237,8 +1256,8 @@ def open_area_list_and_select_online_rooms(driver):
                                                     clicked_ids.add(box.get_attribute("id") or id(box))
                                                 except Exception:
                                                     pass
-                                                print(f"   Added online area via JS ({selected_count})")
-                                                time.sleep(0.2)
+                                                print(f"   Added room to monitoring session via JS ({selected_count}): {row_text}")
+                                                time.sleep(0.08)
                                                 break
                                             except Exception:
                                                 continue
@@ -1255,7 +1274,7 @@ def open_area_list_and_select_online_rooms(driver):
         if not found_any:
             scroll_passes += 1
             _scroll_area_list(2)
-            time.sleep(0.3)
+            time.sleep(0.15)
         else:
             scroll_passes = 0
 
@@ -1263,3 +1282,616 @@ def open_area_list_and_select_online_rooms(driver):
         print(f"✅ Selected {selected_count} online area(s) (green cloud)")
     else:
         print("✓ No online areas to select (or Area list not found)")
+
+
+def _scroll_to_bottom(driver):
+    """Scroll the page to the bottom so pagination controls are in view."""
+    try:
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(0.3)
+    except Exception:
+        pass
+
+
+def _scroll_to_top(driver):
+    """Scroll the page to the top so the video grid is in view."""
+    try:
+        driver.execute_script("window.scrollTo(0, 0);")
+        time.sleep(0.2)
+    except Exception:
+        pass
+
+
+def _get_room_pagination_root(driver):
+    """Return the room-pagination container element or None."""
+    try:
+        for sel in [
+            (By.CSS_SELECTOR, "div.room-pagination"),
+            (By.XPATH, "//div[contains(@class, 'room-pagination')]"),
+        ]:
+            els = driver.find_elements(*sel)
+            for el in els:
+                if el.is_displayed():
+                    return el
+    except Exception:
+        pass
+    return None
+
+
+def _try_click_el(driver, el):
+    """Try Selenium click, then JS click, then ActionChains. Return True if any succeeds."""
+    try:
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'instant'});", el)
+        time.sleep(0.2)
+    except Exception:
+        pass
+    try:
+        WebDriverWait(driver, 2).until(EC.element_to_be_clickable(el))
+        el.click()
+        return True
+    except Exception:
+        pass
+    try:
+        driver.execute_script("arguments[0].click();", el)
+        return True
+    except Exception:
+        pass
+    try:
+        from selenium.webdriver.common.action_chains import ActionChains
+        ActionChains(driver).move_to_element(el).pause(0.1).click().perform()
+        return True
+    except Exception:
+        pass
+    try:
+        driver.execute_script(
+            """
+            var el = arguments[0];
+            var r = el.getBoundingClientRect();
+            var x = r.left + r.width/2, y = r.top + r.height/2;
+            ['mousedown','mouseup','click'].forEach(function(t){
+                el.dispatchEvent(new MouseEvent(t, {bubbles:true, cancelable:true, view:window, clientX:x, clientY:y, button:0}));
+            });
+            """,
+            el,
+        )
+        return True
+    except Exception:
+        pass
+    return False
+
+
+def _click_next_page(driver):
+    """
+    Click to go to the next page. Uses structure:
+    div.room-pagination > div.pages > span.icon-right-chev (no disabled), or span with page number (2, 3, ...).
+    """
+    time.sleep(0.2)
+    _scroll_to_bottom(driver)
+    time.sleep(0.4)
+
+    root = _get_room_pagination_root(driver)
+    if root:
+        # 1) Click page number "2" (or next number) — most reliable when structure is span with text
+        try:
+            for page_num in ["2", "3", "4", "5"]:
+                spans = root.find_elements(By.XPATH, f".//span[normalize-space(.)='{page_num}']")
+                for span in spans:
+                    if not span.is_displayed():
+                        continue
+                    if "active" in (span.get_attribute("class") or ""):
+                        continue
+                    if _try_click_el(driver, span):
+                        print(f"   📄 Clicked page {page_num}")
+                        time.sleep(0.5)
+                        return True
+        except Exception:
+            pass
+
+        # 2) Click span.icon.icon-right-chev that does NOT have class "disabled"
+        try:
+            right_chevrons = root.find_elements(By.CSS_SELECTOR, "span.icon-right-chev")
+            for span in right_chevrons:
+                if not span.is_displayed():
+                    continue
+                cls = (span.get_attribute("class") or "")
+                if "disabled" in cls:
+                    continue
+                if _try_click_el(driver, span):
+                    print("   📄 Clicked Next (right-chev)")
+                    time.sleep(0.5)
+                    return True
+        except Exception:
+            pass
+
+        # 3) Same via XPath (no disabled)
+        try:
+            right_chevrons = root.find_elements(
+                By.XPATH,
+                ".//span[contains(@class, 'icon-right-chev') and not(contains(@class, 'disabled'))]"
+            )
+            for span in right_chevrons:
+                if not span.is_displayed():
+                    continue
+                if _try_click_el(driver, span):
+                    print("   📄 Clicked Next (right-chev)")
+                    time.sleep(0.5)
+                    return True
+        except Exception:
+            pass
+
+    # Fallback without scoping to room-pagination
+    try:
+        for xpath in [
+            "//div[contains(@class, 'room-pagination')]//span[contains(@class, 'icon-right-chev') and not(contains(@class, 'disabled'))]",
+            "//div[contains(@class, 'room-pagination')]//span[normalize-space(.)='2']",
+        ]:
+            for el in driver.find_elements(By.XPATH, xpath):
+                if el.is_displayed() and _try_click_el(driver, el):
+                    print("   📄 Clicked Next page")
+                    time.sleep(0.5)
+                    return True
+    except Exception:
+        pass
+    return False
+
+
+def _is_next_page_available(driver):
+    """Return True if there is a next page (room-pagination: right-chev without disabled, or page number 2)."""
+    _scroll_to_bottom(driver)
+    time.sleep(0.2)
+    root = _get_room_pagination_root(driver)
+    if root:
+        try:
+            for span in root.find_elements(
+                By.XPATH,
+                ".//span[contains(@class, 'icon-right-chev') and not(contains(@class, 'disabled'))]"
+            ):
+                if span.is_displayed():
+                    return True
+        except Exception:
+            pass
+        try:
+            for span in root.find_elements(By.XPATH, ".//span[normalize-space(.)='2']"):
+                if span.is_displayed() and "active" not in (span.get_attribute("class") or ""):
+                    return True
+        except Exception:
+            pass
+    try:
+        for xpath in [
+            "//div[contains(@class, 'room-pagination')]//span[contains(@class, 'icon-right-chev') and not(contains(@class, 'disabled'))]",
+        ]:
+            for el in driver.find_elements(By.XPATH, xpath):
+                if el.is_displayed():
+                    return True
+    except Exception:
+        pass
+    return False
+
+
+def go_to_first_page(driver):
+    """
+    Navigate back to page 1. Uses div.room-pagination > div.pages > span with "1".
+    If <span class="active">1</span> is present we're already on page 1.
+    """
+    _scroll_to_bottom(driver)
+    time.sleep(0.2)
+    root = _get_room_pagination_root(driver)
+    if root:
+        try:
+            for span in root.find_elements(By.XPATH, ".//span[normalize-space(.)='1']"):
+                if not span.is_displayed():
+                    continue
+                if "active" in (span.get_attribute("class") or ""):
+                    print("   📄 Already on page 1")
+                    _scroll_to_top(driver)
+                    return True
+                if _try_click_el(driver, span):
+                    print("   📄 Clicked page 1")
+                    time.sleep(0.5)
+                    _scroll_to_top(driver)
+                    return True
+        except Exception:
+            pass
+    for xpath in [
+        "//div[contains(@class, 'room-pagination')]//span[normalize-space(.)='1']",
+        "//span[normalize-space(.)='1']/parent::*",
+    ]:
+        try:
+            for el in driver.find_elements(By.XPATH, xpath):
+                if not el.is_displayed():
+                    continue
+                if "active" in (el.get_attribute("class") or ""):
+                    print("   📄 Already on page 1")
+                    _scroll_to_top(driver)
+                    return True
+                if _try_click_el(driver, el):
+                    print("   📄 Clicked page 1")
+                    time.sleep(0.5)
+                    _scroll_to_top(driver)
+                    return True
+        except Exception:
+            continue
+    _scroll_to_top(driver)
+    return False
+
+
+def _get_room_tiles_for_ptz(driver):
+    """
+    Return a list of elements that represent room tiles (video or its clickable container)
+    so we can select a room before using PTZ. Prefer the video's parent container if it
+    looks like a card/tile; otherwise the video itself.
+    """
+    tiles = []
+    videos = driver.find_elements(By.TAG_NAME, "video")
+    for v in videos:
+        try:
+            if not v.is_displayed():
+                continue
+            parent = v.find_element(By.XPATH, "..")
+            if parent and parent.is_displayed() and parent.get_attribute("tagName") and parent.get_attribute("tagName").upper() != "BODY":
+                tiles.append(parent)
+            else:
+                tiles.append(v)
+        except Exception:
+            try:
+                tiles.append(v)
+            except Exception:
+                continue
+    return tiles
+
+
+def _get_video_from_tile(tile_el):
+    """Return the video element from a room tile (tile may be the video's parent or the video itself)."""
+    try:
+        if tile_el.tag_name.lower() == "video":
+            return tile_el
+        videos = tile_el.find_elements(By.TAG_NAME, "video")
+        for v in videos:
+            if v.is_displayed():
+                return v
+    except Exception:
+        pass
+    return None
+
+
+def _ptz_drag_on_video(driver, video_el, direction, drag_pixels=60):
+    """
+    Perform PTZ by dragging on the video element. Prefers Selenium ActionChains so the
+    app receives real mouse events (React and other frameworks often ignore synthetic
+    dispatchEvent). Falls back to JS dispatchEvent if ActionChains fails.
+    Returns True if the drag was performed.
+    """
+    direction = direction.lower()
+    dx, dy = 0, 0
+    if direction == "up":
+        dy = -drag_pixels
+    elif direction == "down":
+        dy = drag_pixels
+    elif direction == "left":
+        dx = -drag_pixels
+    elif direction == "right":
+        dx = drag_pixels
+    else:
+        return False
+    try:
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'instant'});", video_el)
+        time.sleep(0.1)
+    except Exception:
+        pass
+    try:
+        from selenium.webdriver.common.action_chains import ActionChains
+        actions = ActionChains(driver)
+        actions.move_to_element(video_el).pause(0.05)
+        actions.click_and_hold().pause(0.05)
+        actions.move_by_offset(dx, dy).pause(0.05)
+        actions.release()
+        actions.perform()
+        return True
+    except Exception:
+        pass
+    try:
+        success = driver.execute_script(
+            """
+            var video = arguments[0];
+            var dx = arguments[1], dy = arguments[2];
+            var rect = video.getBoundingClientRect();
+            var startX = rect.left + rect.width / 2;
+            var startY = rect.top + rect.height / 2;
+            var endX = startX + dx;
+            var endY = startY + dy;
+            if (rect.width < 10 || rect.height < 10) return false;
+
+            var preventScroll = function(e) {
+                if (video.contains(e.target) || e.target === video) e.preventDefault();
+            };
+            var types = ['mousedown', 'mousemove', 'mouseup'];
+            types.forEach(function(t) { document.addEventListener(t, preventScroll, true); });
+
+            try {
+                var opts = { bubbles: true, cancelable: true, view: window };
+                video.dispatchEvent(new MouseEvent('mousedown', Object.assign({}, opts, { clientX: startX, clientY: startY, button: 0, buttons: 1 })));
+                video.dispatchEvent(new MouseEvent('mousemove', Object.assign({}, opts, { clientX: endX, clientY: endY, button: 0, buttons: 1 })));
+                video.dispatchEvent(new MouseEvent('mouseup', Object.assign({}, opts, { clientX: endX, clientY: endY, button: 0, buttons: 0 })));
+                return true;
+            } finally {
+                types.forEach(function(t) { document.removeEventListener(t, preventScroll, true); });
+            }
+            """,
+            video_el,
+            dx,
+            dy,
+        )
+        return bool(success)
+    except Exception:
+        return False
+
+
+def _wait_for_ptz_ready(driver, timeout=2):
+    """Wait for PTZ controls to be visible so the selected stream is ready for PTZ commands."""
+    try:
+        WebDriverWait(driver, timeout).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, ".ptz-arrows, [class*='ptz'], [class*='PTZ']"))
+        )
+        time.sleep(0.2)
+        return True
+    except Exception:
+        return False
+
+
+def _click_ptz_direction(driver, direction, context_el=None):
+    """
+    Find and click a PTZ control for the given direction ('up', 'down', 'left', 'right').
+    Uses structure: div.ptz-arrows > div.<direction>.control-icon > span.icon-<direction>-chev
+    Scoped to .ptz-arrows to avoid clicking pagination arrows. If context_el is given,
+    search for PTZ controls within that element first (e.g. the selected stream panel).
+    Returns True if a control was clicked.
+    """
+    direction_lower = direction.lower()
+    # App structure: .ptz-arrows .up.control-icon, .down.control-icon, etc.
+    # with inner span .icon-up-chev, .icon-down-chev, ...
+    base_selectors = [
+        (By.CSS_SELECTOR, f"div.ptz-arrows div.{direction_lower}.control-icon"),
+        (By.CSS_SELECTOR, f"div.ptz-arrows span.icon-{direction_lower}-chev"),
+        (By.CSS_SELECTOR, f".ptz-arrows .control-icon.{direction_lower}"),
+        (By.XPATH, f"//div[contains(@class, 'ptz-arrows')]//div[contains(@class, 'control-icon') and contains(@class, '{direction_lower}')]"),
+        (By.XPATH, f"//div[contains(@class, 'ptz-arrows')]//span[contains(@class, 'icon-{direction_lower}-chev')]"),
+        (By.XPATH, f"//*[contains(@class, 'ptz') or contains(@class, 'PTZ')]//*[contains(@aria-label, '{direction}') or contains(@title, '{direction}')]"),
+        (By.CSS_SELECTOR, f"[class*='ptz'] [class*='{direction_lower}']"),
+    ]
+    search_roots = [context_el] if context_el else [None]
+    for root in search_roots:
+        for by, selector in base_selectors:
+            try:
+                els = root.find_elements(by, selector) if root else driver.find_elements(by, selector)
+                for el in els:
+                    if not el.is_displayed():
+                        continue
+                    try:
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'instant'});", el)
+                        time.sleep(0.05)
+                    except Exception:
+                        pass
+                    try:
+                        el.click()
+                        return True
+                    except Exception:
+                        try:
+                            driver.execute_script("arguments[0].click();", el)
+                            return True
+                        except Exception:
+                            continue
+            except Exception:
+                continue
+    return False
+
+
+def run_monitoring_with_ptz(driver, duration_seconds=180, interval_seconds=10):
+    """
+    Run the monitoring session for duration_seconds. Every interval_seconds, randomly
+    select a room and trigger random PTZ directions (up, down, left, right) several times.
+    """
+    directions = ["up", "down", "left", "right"]
+    elapsed = 0
+    interval_count = 0
+    intervals_total = max(1, duration_seconds // interval_seconds)
+    while elapsed < duration_seconds:
+        time.sleep(interval_seconds)
+        elapsed += interval_seconds
+        interval_count += 1
+        remaining = max(0, duration_seconds - elapsed)
+        print(f"   ⏱️  Monitoring {elapsed}s / {duration_seconds}s — PTZ interval {interval_count}/{intervals_total} (remaining {remaining}s)")
+
+        tiles = _get_room_tiles_for_ptz(driver)
+        if not tiles:
+            continue
+        room = random.choice(tiles)
+        try:
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'instant'});", room)
+            time.sleep(0.15)
+        except Exception:
+            pass
+        try:
+            room.click()
+        except Exception:
+            try:
+                driver.execute_script("arguments[0].click();", room)
+            except Exception:
+                pass
+        time.sleep(0.4)
+        _wait_for_ptz_ready(driver)
+
+        video_el = _get_video_from_tile(room)
+        num_ptz_moves = random.randint(2, 5)
+        for _ in range(num_ptz_moves):
+            d = random.choice(directions)
+            if video_el and _ptz_drag_on_video(driver, video_el, d):
+                print(f"      PTZ {d} (drag on video)")
+            elif _click_ptz_direction(driver, d, context_el=room):
+                print(f"      PTZ {d} (arrows)")
+            elif _click_ptz_direction(driver, d):
+                print(f"      PTZ {d} (arrows)")
+            time.sleep(0.25 + random.uniform(0, 0.25))
+
+    print(f"✅ Monitoring with PTZ completed ({duration_seconds}s)")
+
+
+def _get_visible_video_elements(driver):
+    """Return list of visible video elements that are likely session streams."""
+    videos = driver.find_elements(By.TAG_NAME, "video")
+    visible = []
+    for v in videos:
+        try:
+            if not v.is_displayed():
+                continue
+            visible.append(v)
+        except Exception:
+            continue
+    return visible
+
+
+def _video_element_has_content(driver, video_el):
+    """Return (has_video: bool, label: str) by checking readyState and dimensions via JS."""
+    try:
+        result = driver.execute_script(
+            """
+            var v = arguments[0];
+            if (!v || v.tagName.toLowerCase() !== 'video') return { hasVideo: false, reason: 'not video' };
+            var rs = v.readyState;
+            var w = v.videoWidth || 0;
+            var h = v.videoHeight || 0;
+            var hasFrame = rs >= 2 && w > 0 && h > 0;
+            var playing = !v.paused && !v.ended && v.currentTime > 0;
+            var reason = hasFrame ? (playing ? 'playing' : 'paused') : 'no data';
+            return { hasVideo: hasFrame, readyState: rs, width: w, height: h, playing: playing, reason: reason };
+            """,
+            video_el,
+        )
+        if result is None:
+            return False, "js_error"
+        has_video = result.get("hasVideo", False)
+        reason = result.get("reason", "unknown")
+        return bool(has_video), reason
+    except Exception:
+        return False, "error"
+
+
+def _assess_video_quality_from_element(driver, video_el):
+    """
+    Take a screenshot of the video element and assess if it looks blurry or pixelated.
+    Returns one of: 'ok', 'blurry', 'pixelated', 'unknown'.
+    Uses Laplacian variance as a sharpness metric (low = blurry). Requires Pillow (PIL).
+    """
+    try:
+        from PIL import Image, ImageFilter
+        import io
+    except ImportError:
+        return "unknown"
+
+    try:
+        png_bytes = video_el.screenshot_as_png
+        if not png_bytes or len(png_bytes) < 100:
+            return "unknown"
+        img = Image.open(io.BytesIO(png_bytes)).convert("L")
+        w, h = img.size
+        if w < 10 or h < 10:
+            return "unknown"
+        lap = img.filter(ImageFilter.LAPLACIAN)
+        pixels = list(lap.getdata())
+        if not pixels:
+            return "unknown"
+        mean = sum(pixels) / len(pixels)
+        lap_variance = sum((x - mean) ** 2 for x in pixels) / len(pixels)
+        if lap_variance < 100:
+            return "blurry"
+        if lap_variance > 3000 and w * h < 80000:
+            return "pixelated"
+        return "ok"
+    except Exception:
+        return "unknown"
+
+
+def _screenshot_bad_video(video_el, screenshot_dir, page_num, session_ordinal, reason):
+    """Save a screenshot of the video element to screenshot_dir. reason: 'no_video', 'blurry', 'pixelated'."""
+    if not screenshot_dir:
+        return
+    try:
+        os.makedirs(screenshot_dir, exist_ok=True)
+        safe_reason = reason.replace(" ", "_").replace("/", "_")
+        filename = f"bad_video_page{page_num}_session{session_ordinal}_{safe_reason}.png"
+        filepath = os.path.join(screenshot_dir, filename)
+        video_el.screenshot(filepath)
+        print(f"      📷 Screenshot: {filepath}")
+    except Exception as e:
+        print(f"      ⚠️ Could not save screenshot: {e}")
+
+
+def validate_video_sessions_across_pages(driver, check_quality=True, screenshot_dir=None):
+    """
+    After rooms are added to the monitoring session, validate that each visible
+    session is showing video. Use pagination at the bottom to switch pages and
+    check all sessions. Optionally assess whether video is blurry or pixelated.
+    When a bad video is found (no video, blurry, or pixelated), a screenshot
+    of that video element is saved to screenshot_dir if provided.
+
+    Returns a dict: {
+        'pages_checked': int,
+        'total_sessions_with_video': int,
+        'total_sessions_no_video': int,
+        'quality_issues': list of (session_index_or_label, 'blurry'|'pixelated'),
+        'errors': list of str
+    }
+    """
+    results = {
+        "pages_checked": 0,
+        "total_sessions_with_video": 0,
+        "total_sessions_no_video": 0,
+        "quality_issues": [],
+        "errors": [],
+    }
+    page_num = 0
+    session_ordinal = 0
+
+    while True:
+        page_num += 1
+        _scroll_to_top(driver)
+        time.sleep(0.3)
+        videos = _get_visible_video_elements(driver)
+        if not videos:
+            if page_num == 1:
+                results["errors"].append("No video elements found on first page")
+                print("⚠️ No video elements found on this page")
+            break
+
+        results["pages_checked"] += 1
+        print(f"   Page {page_num}: found {len(videos)} video element(s)")
+
+        for i, video_el in enumerate(videos):
+            session_ordinal += 1
+            has_video, reason = _video_element_has_content(driver, video_el)
+            if has_video:
+                results["total_sessions_with_video"] += 1
+                quality = _assess_video_quality_from_element(driver, video_el) if check_quality else "unknown"
+                if quality == "blurry":
+                    results["quality_issues"].append((session_ordinal, "blurry"))
+                    print(f"      Session {session_ordinal}: ✅ video present — ⚠️ blurry")
+                    _screenshot_bad_video(video_el, screenshot_dir, page_num, session_ordinal, "blurry")
+                elif quality == "pixelated":
+                    results["quality_issues"].append((session_ordinal, "pixelated"))
+                    print(f"      Session {session_ordinal}: ✅ video present — ⚠️ pixelated")
+                    _screenshot_bad_video(video_el, screenshot_dir, page_num, session_ordinal, "pixelated")
+                else:
+                    print(f"      Session {session_ordinal}: ✅ video present ({reason})" + (f" — {quality}" if quality != "unknown" else ""))
+            else:
+                results["total_sessions_no_video"] += 1
+                print(f"      Session {session_ordinal}: ❌ no video ({reason})")
+                _screenshot_bad_video(video_el, screenshot_dir, page_num, session_ordinal, "no_video")
+
+        if not _is_next_page_available(driver):
+            break
+        if not _click_next_page(driver):
+            break
+
+    print(f"✅ Validated across {results['pages_checked']} page(s): {results['total_sessions_with_video']} with video, {results['total_sessions_no_video']} without")
+    if results["quality_issues"]:
+        print(f"   Quality issues: {results['quality_issues']}")
+    return results

@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jira – Team Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --text-muted: #a1a1aa;
+      --accent: #a78bfa;
+      --accent-dim: #7c3aed;
+      --success: #4ade80;
+      --warn: #fbbf24;
+      --error: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .layout {
+      width: 100%;
+      max-width: min(1800px, 96vw);
+      margin: 0 auto;
+      padding: clamp(1rem, 2vw, 2rem);
+    }
+    h1 {
+      font-weight: 600;
+      font-size: 1.75rem;
+      margin: 0 0 0.5rem 0;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+    }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    button {
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+    }
+    button:hover { filter: brightness(1.1); }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .filters {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filters label {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .filters select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .issues-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .issues-table th,
+    .issues-table td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .issues-table th {
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .issues-table th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    .issues-table th.sortable:hover { color: var(--accent); }
+    .issues-table th .sort-indicator { margin-left: 0.25rem; font-size: 0.7rem; }
+    .issues-table tr:last-child td { border-bottom: none; }
+    .issues-table tbody tr { cursor: pointer; }
+    .issues-table tbody tr:hover td { background: rgba(167, 139, 250, 0.05); }
+    .issues-table tbody tr.selected td { background: rgba(167, 139, 250, 0.15); border-left: 3px solid var(--accent); }
+    button.secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    button.secondary:hover:not(:disabled) { background: rgba(167, 139, 250, 0.15); }
+    .result-strip {
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .result-strip.success { background: rgba(74, 222, 128, 0.15); color: var(--success); border: 1px solid rgba(74, 222, 128, 0.3); }
+    .result-strip.error { background: rgba(248, 113, 113, 0.1); color: var(--error); border: 1px solid rgba(248, 113, 113, 0.3); }
+    .result-strip a { color: var(--accent); }
+    .result-strip .open-link { margin-left: 0.5rem; }
+    .status-cell { position: relative; }
+    .status-cell .badge-status { cursor: pointer; }
+    .status-cell .badge-status:hover { opacity: 0.9; text-decoration: underline; }
+    .status-dropdown {
+      position: fixed;
+      z-index: 1000;
+      min-width: 140px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      padding: 0.25rem 0;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .status-dropdown-option {
+      display: block;
+      width: 100%;
+      padding: 0.4rem 0.75rem;
+      text-align: left;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .status-dropdown-option:hover { background: rgba(167, 139, 250, 0.2); }
+    .status-dropdown-cancel { color: var(--text-muted); border-bottom: 1px solid var(--border); margin-bottom: 0.25rem; }
+    .status-dropdown-cancel:hover { background: rgba(161, 161, 170, 0.15); }
+    .status-dropdown-loading { padding: 0.5rem 0.75rem; color: var(--text-muted); font-size: 0.85rem; }
+    .issue-key {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      color: var(--accent);
+    }
+    .issue-key a {
+      color: inherit;
+      text-decoration: none;
+    }
+    .issue-key a:hover { text-decoration: underline; }
+    .summary { max-width: min(480px, 35vw); }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .badge-status { background: rgba(167, 139, 250, 0.2); color: var(--accent); }
+    .badge-type { background: var(--border); color: var(--text-muted); }
+    .badge-priority { background: rgba(251, 191, 36, 0.2); color: var(--warn); }
+    .due-past { color: var(--error); }
+    .due-soon { color: var(--warn); }
+    .loading, .error-msg, .empty-msg {
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .error-msg { color: var(--error); background: rgba(248, 113, 113, 0.1); border-radius: 8px; margin: 1rem 0; }
+    .spinner {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .count { color: var(--text-muted); font-size: 0.9rem; }
+    .btn-link {
+      display: inline-block;
+      font-family: inherit;
+      font-size: 0.8rem;
+      padding: 0.35rem 0.6rem;
+      border-radius: 6px;
+      border: 1px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-link:hover { background: rgba(167, 139, 250, 0.15); }
+    .detail-row td {
+      padding: 0;
+      vertical-align: top;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.2);
+    }
+    .detail-row .description-wrap {
+      padding: 1rem 1rem 1rem 2rem;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text-muted);
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .detail-row .description-wrap.empty { font-style: italic; color: var(--text-muted); opacity: 0.8; }
+    .detail-row .description-loading { padding: 1rem; color: var(--text-muted); }
+    .test-script-cell a { color: var(--accent); text-decoration: none; }
+    .test-script-cell a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <h1>Team dashboard</h1>
+    <p class="subtitle">Issues from Jira – what the team is working on</p>
+
+    <div class="toolbar">
+      <button type="button" id="btnRefresh" onclick="loadIssues()">Refresh</button>
+      <button type="button" id="btnTestpad" class="secondary" onclick="createTestpadScript()" disabled title="Select an issue to generate a Testpad script">Create Testpad script</button>
+      <div class="filters">
+        <label for="filterProject">Project</label>
+        <select id="filterProject">
+          <option value="">All</option>
+        </select>
+        <label for="filterAssignee">Assignee</label>
+        <select id="filterAssignee">
+          <option value="">All</option>
+        </select>
+        <label for="filterStatus">Status</label>
+        <select id="filterStatus">
+          <option value="">All</option>
+        </select>
+        <label for="filterRelease">Release</label>
+        <select id="filterRelease">
+          <option value="">All</option>
+        </select>
+      </div>
+      <span class="count" id="count"></span>
+      <span class="count" id="jqlHint" style="display: none; margin-left: 0.5rem; color: var(--accent);" title="JQL from JIRA_TEAM_JQL in .env">Custom JQL</span>
+    </div>
+    <p class="subtitle" style="margin-top: -0.5rem; margin-bottom: 1rem; font-size: 0.85rem;">Select an issue above, then use Create Testpad script to generate tests and link the script in Jira.</p>
+    <div id="resultStrip" class="result-strip" style="display: none;"></div>
+    <div id="statusDropdown" class="status-dropdown" style="display: none;"></div>
+
+    <div id="content">
+      <div class="loading" id="loading">Loading…</div>
+      <div class="error-msg" id="error" style="display: none;"></div>
+      <div class="card" id="card" style="display: none;">
+        <table class="issues-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="key" onclick="setSort('key')">Key <span class="sort-indicator"></span></th>
+              <th>Summary</th>
+              <th class="sortable" data-sort="status" onclick="setSort('status')">Status <span class="sort-indicator"></span></th>
+              <th class="sortable" data-sort="priority" onclick="setSort('priority')">Priority <span class="sort-indicator"></span></th>
+              <th class="sortable" data-sort="assignee" onclick="setSort('assignee')">Assignee <span class="sort-indicator"></span></th>
+              <th class="sortable" data-sort="test_script" onclick="setSort('test_script')">Test Script <span class="sort-indicator"></span></th>
+              <th class="sortable" data-sort="fix_version" onclick="setSort('fix_version')">Fix Version <span class="sort-indicator"></span></th>
+              <th style="width: 100px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty-msg" id="empty" style="display: none;">No issues match the current filters.</div>
+    </div>
+  </div>
+
+  <script>
+    let allIssues = [];
+    let selectedIssueKey = null;
+    let sortBy = 'key';
+    let sortDir = 'asc';
+
+    function setSort(col) {
+      if (sortBy === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      else { sortBy = col; sortDir = 'asc'; }
+      updateSortIndicators();
+      renderTable();
+    }
+
+    function updateSortIndicators() {
+      document.querySelectorAll('.issues-table th.sortable').forEach(function(th) {
+        var ind = th.querySelector('.sort-indicator');
+        if (!ind) return;
+        var col = th.getAttribute('data-sort');
+        ind.textContent = (sortBy === col) ? (sortDir === 'asc' ? '\u25b2' : '\u25bc') : '';
+      });
+    }
+
+    function sortIssues(issues) {
+      if (!sortBy) return issues;
+      var key = sortBy;
+      var dir = sortDir === 'asc' ? 1 : -1;
+      return issues.slice().sort(function(a, b) {
+        var va = (a[key] != null ? String(a[key]) : '').toLowerCase();
+        var vb = (b[key] != null ? String(b[key]) : '').toLowerCase();
+        if (va < vb) return -dir;
+        if (va > vb) return dir;
+        return 0;
+      });
+    }
+
+    function showLoading(show) {
+      document.getElementById('loading').style.display = show ? 'block' : 'none';
+      document.getElementById('error').style.display = 'none';
+      document.getElementById('card').style.display = show ? 'none' : 'block';
+      document.getElementById('empty').style.display = 'none';
+      document.getElementById('btnRefresh').disabled = show;
+    }
+
+    function showError(msg) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('card').style.display = 'none';
+      document.getElementById('empty').style.display = 'none';
+      const el = document.getElementById('error');
+      el.textContent = msg;
+      el.style.display = 'block';
+      document.getElementById('btnRefresh').disabled = false;
+    }
+
+    function populateFilters(issues) {
+      const projects = [...new Set(issues.map(i => i.project).filter(Boolean))].sort();
+      const assignees = [...new Set(issues.map(i => i.assignee).filter(Boolean))].sort();
+      const statuses = [...new Set(issues.map(i => i.status).filter(Boolean))].sort();
+      const releases = [...new Set(issues.map(i => i.fix_version).filter(Boolean))].sort();
+      const projectSel = document.getElementById('filterProject');
+      const assigneeSel = document.getElementById('filterAssignee');
+      const statusSel = document.getElementById('filterStatus');
+      const releaseSel = document.getElementById('filterRelease');
+      projectSel.innerHTML = '<option value="">All</option>' + projects.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+      assigneeSel.innerHTML = '<option value="">All</option>' + assignees.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join('');
+      statusSel.innerHTML = '<option value="">All</option>' + statuses.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+      releaseSel.innerHTML = '<option value="">All</option>' + releases.map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
+      projectSel.onchange = renderTable;
+      assigneeSel.onchange = renderTable;
+      statusSel.onchange = renderTable;
+      releaseSel.onchange = renderTable;
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    function getFilteredIssues() {
+      const project = document.getElementById('filterProject').value;
+      const assignee = document.getElementById('filterAssignee').value;
+      const status = document.getElementById('filterStatus').value;
+      const release = document.getElementById('filterRelease').value;
+      return allIssues.filter(i => {
+        if (project && i.project !== project) return false;
+        if (assignee && i.assignee !== assignee) return false;
+        if (status && i.status !== status) return false;
+        if (release && i.fix_version !== release) return false;
+        return true;
+      });
+    }
+
+    function dueClass(dueStr) {
+      if (!dueStr) return '';
+      const d = new Date(dueStr);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      d.setHours(0, 0, 0, 0);
+      if (d < today) return 'due-past';
+      const days = (d - today) / (24 * 60 * 60 * 1000);
+      if (days <= 3) return 'due-soon';
+      return '';
+    }
+
+    function formatDate(s) {
+      if (!s) return '—';
+      const d = new Date(s);
+      return isNaN(d) ? s : d.toLocaleDateString();
+    }
+
+    function selectIssue(key) {
+      selectedIssueKey = key || null;
+      document.querySelectorAll('.issues-table tbody tr.issue-row').forEach(tr => {
+        tr.classList.toggle('selected', tr.getAttribute('data-issue-key') === key);
+      });
+      const btn = document.getElementById('btnTestpad');
+      btn.disabled = !selectedIssueKey;
+      btn.title = selectedIssueKey ? 'Create Testpad script for ' + selectedIssueKey : 'Select an issue to generate a Testpad script';
+    }
+
+    let statusDropdownIssueKey = null;
+    let statusDropdownTransitions = [];
+    let statusDropdownClose = null;
+
+    function closeStatusDropdown() {
+      const el = document.getElementById('statusDropdown');
+      el.style.display = 'none';
+      statusDropdownIssueKey = null;
+      if (statusDropdownClose) {
+        document.removeEventListener('click', statusDropdownClose, true);
+        statusDropdownClose = null;
+      }
+    }
+
+    async function openStatusDropdown(ev, issueKey) {
+      ev.stopPropagation();
+      ev.preventDefault();
+      closeStatusDropdown();
+      statusDropdownIssueKey = issueKey;
+      const dropdown = document.getElementById('statusDropdown');
+      const triggerEl = ev.currentTarget;
+      const rect = triggerEl.getBoundingClientRect();
+      dropdown.style.left = rect.left + 'px';
+      dropdown.style.top = (rect.bottom + 4) + 'px';
+      dropdown.innerHTML = '<span class="status-dropdown-loading">Loading…</span>';
+      dropdown.style.display = 'block';
+
+      statusDropdownClose = function(e) {
+        var target = e && e.target;
+        if (!target) return;
+        var inDropdown = dropdown && dropdown.contains(target);
+        var onTrigger = triggerEl && triggerEl.contains(target);
+        if (!inDropdown && !onTrigger) {
+          closeStatusDropdown();
+        }
+      };
+      setTimeout(function() { document.addEventListener('click', statusDropdownClose, true); }, 0);
+
+      try {
+        const r = await fetch('/api/issues/' + encodeURIComponent(issueKey) + '/transitions');
+        const data = await r.json();
+        if (data.error || !data.transitions || !data.transitions.length) {
+          dropdown.innerHTML = '<span class="status-dropdown-loading">' + (data.error || 'No transitions') + '</span>';
+          return;
+        }
+        statusDropdownTransitions = data.transitions;
+        dropdown.innerHTML = '<button type="button" class="status-dropdown-option status-dropdown-cancel">Cancel</button>' +
+          data.transitions.map(function(t) {
+            return '<button type="button" class="status-dropdown-option" data-id="' + t.id + '">' + escapeHtml(t.name) + '</button>';
+          }).join('');
+        dropdown.querySelectorAll('.status-dropdown-option').forEach(function(btn) {
+          btn.onclick = function(e) {
+            e.stopPropagation();
+            if (btn.classList.contains('status-dropdown-cancel')) {
+              closeStatusDropdown();
+              return;
+            }
+            const id = parseInt(btn.getAttribute('data-id'), 10);
+            const t = statusDropdownTransitions.find(function(tr) { return tr.id === id; });
+            applyTransition(issueKey, id, t ? t.to : '');
+            closeStatusDropdown();
+          };
+        });
+      } catch (e) {
+        dropdown.innerHTML = '<span class="status-dropdown-loading">Error: ' + escapeHtml(e.message) + '</span>';
+      }
+    }
+
+    async function applyTransition(issueKey, transitionId, newStatusName) {
+      try {
+        const r = await fetch('/api/issues/' + encodeURIComponent(issueKey) + '/transition', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transition_id: transitionId })
+        });
+        const data = await r.json();
+        if (data.error) {
+          showResult(false, 'Status update failed: ' + (data.error || r.status));
+          return;
+        }
+        const issue = allIssues.find(function(i) { return i.key === issueKey; });
+        if (issue) issue.status = newStatusName;
+        renderTable();
+      } catch (e) {
+        showResult(false, 'Status update failed: ' + e.message);
+      }
+    }
+
+    function toggleExpand(key) {
+      const detailRow = document.querySelector('.detail-row[data-issue-key="' + String(key).replace(/"/g, '\\"') + '"]');
+      if (!detailRow) return;
+      const isExpanded = detailRow.style.display !== 'none';
+      document.querySelectorAll('.detail-row').forEach(r => { r.style.display = 'none'; });
+      document.querySelectorAll('.issue-row').forEach(r => r.classList.remove('expanded'));
+      if (!isExpanded) {
+        detailRow.style.display = 'table-row';
+        const row = document.querySelector('.issue-row[data-issue-key="' + String(key).replace(/"/g, '\\"') + '"]');
+        if (row) row.classList.add('expanded');
+        const wrap = detailRow.querySelector('.description-wrap');
+        if (wrap && wrap.getAttribute('data-loaded') !== '1') loadDescription(key, wrap);
+      }
+    }
+
+    async function loadDescription(key, wrapEl) {
+      wrapEl.innerHTML = '<span class="description-loading">Loading description…</span>';
+      wrapEl.setAttribute('data-loaded', '0');
+      try {
+        const r = await fetch('/api/issues/' + encodeURIComponent(key));
+        const data = await r.json();
+        if (data.error) {
+          wrapEl.textContent = data.error;
+          wrapEl.className = 'description-wrap empty';
+        } else {
+          const desc = (data.description || '').trim();
+          wrapEl.textContent = desc || 'No description.';
+          wrapEl.className = 'description-wrap' + (desc ? '' : ' empty');
+        }
+      } catch (e) {
+        wrapEl.textContent = 'Failed to load: ' + e.message;
+        wrapEl.className = 'description-wrap empty';
+      }
+      wrapEl.setAttribute('data-loaded', '1');
+    }
+
+    function renderTable() {
+      var issues = sortIssues(getFilteredIssues());
+      document.getElementById('count').textContent = `${issues.length} issue${issues.length !== 1 ? 's' : ''}`;
+      const tbody = document.getElementById('tbody');
+      if (!issues.length) {
+        document.getElementById('card').style.display = 'none';
+        document.getElementById('empty').style.display = 'block';
+        document.getElementById('empty').textContent = 'No issues match the current filters.';
+        selectIssue(null);
+        return;
+      }
+      document.getElementById('card').style.display = 'block';
+      document.getElementById('empty').style.display = 'none';
+      tbody.innerHTML = issues.map(i => `
+        <tr class="issue-row" data-issue-key="${escapeHtml(i.key)}" onclick="selectIssue(this.getAttribute('data-issue-key')); toggleExpand(this.getAttribute('data-issue-key'))">
+          <td class="issue-key"><a href="${escapeHtml(i.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escapeHtml(i.key)}</a></td>
+          <td class="summary">${escapeHtml(i.summary)}</td>
+          <td class="status-cell" onclick="event.stopPropagation()"><span class="badge badge-status" data-issue-key="${escapeHtml(i.key)}" onclick="openStatusDropdown(event, this.getAttribute('data-issue-key'))">${escapeHtml(i.status || '—')}</span></td>
+          <td><span class="badge badge-priority">${escapeHtml(i.priority || '—')}</span></td>
+          <td>${escapeHtml(i.assignee || 'Unassigned')}</td>
+          <td class="test-script-cell">${(i.test_script && (i.test_script.startsWith('http') ? '<a href="' + escapeHtml(i.test_script) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Link</a>' : escapeHtml(i.test_script))) || '—'}</td>
+          <td>${escapeHtml(i.fix_version || '—')}</td>
+          <td onclick="event.stopPropagation()"><a class="btn-link" href="${escapeHtml(i.link)}" target="_blank" rel="noopener">View in Jira</a></td>
+        </tr>
+        <tr class="detail-row" data-issue-key="${escapeHtml(i.key)}" style="display: none">
+          <td colspan="8"><div class="description-wrap" data-loaded="0"></div></td>
+        </tr>
+      `).join('');
+      updateSortIndicators();
+      selectIssue(selectedIssueKey && issues.some(iss => iss.key === selectedIssueKey) ? selectedIssueKey : null);
+    }
+
+    function showResult(success, message, scriptUrl) {
+      const strip = document.getElementById('resultStrip');
+      strip.style.display = 'block';
+      strip.className = 'result-strip ' + (success ? 'success' : 'error');
+      if (success && scriptUrl) {
+        strip.innerHTML = message + ' <a href="' + escapeHtml(scriptUrl) + '" target="_blank" rel="noopener">' + escapeHtml(scriptUrl) + '</a>' +
+          ' <a href="' + escapeHtml(scriptUrl) + '" target="_blank" rel="noopener" class="open-link">Open in Testpad</a>';
+      } else {
+        strip.textContent = message;
+      }
+    }
+
+    async function createTestpadScript() {
+      if (!selectedIssueKey) return;
+      const btn = document.getElementById('btnTestpad');
+      const origLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Creating script…';
+      document.getElementById('resultStrip').style.display = 'none';
+      try {
+        const r = await fetch('/api/jira-to-testpad', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ issue_key: selectedIssueKey })
+        });
+        const data = await r.json();
+        if (data.success && data.script_url) {
+          showResult(true, 'Testpad script created and linked in Jira. ', data.script_url);
+          window.open(data.script_url, '_blank', 'noopener');
+        } else {
+          showResult(false, data.error || 'Request failed.');
+        }
+      } catch (e) {
+        showResult(false, 'Network error: ' + e.message);
+      } finally {
+        btn.disabled = !selectedIssueKey;
+        btn.textContent = origLabel;
+      }
+    }
+
+    async function loadIssues() {
+      showLoading(true);
+      try {
+        const r = await fetch('/api/issues');
+        let data = {};
+        try {
+          data = await r.json();
+        } catch (_) {
+          const text = await r.text();
+          showError(r.status + ' ' + (r.statusText || '') + (text ? ': ' + text.slice(0, 300) : ''));
+          return;
+        }
+        if (!r.ok) {
+          showError(data.error || data.message || ('Failed to load issues (' + r.status + ')'));
+          return;
+        }
+        if (data.error) {
+          showError(data.error + (data.using_team_jql ? ' (using your JIRA_TEAM_JQL)' : ''));
+          return;
+        }
+        allIssues = data.issues || [];
+        const hint = document.getElementById('jqlHint');
+        if (hint) hint.style.display = data.using_team_jql ? 'inline' : 'none';
+        populateFilters(allIssues);
+        showLoading(false);
+        renderTable();
+      } catch (e) {
+        showError('Network error: ' + e.message);
+      } finally {
+        document.getElementById('btnRefresh').disabled = false;
+      }
+    }
+
+    loadIssues();
+  </script>
+</body>
+</html>

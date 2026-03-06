@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Update the "Today - IDA/Services SCRUM" Confluence page with Assigned Tasks and Current Tasks from TODO.md.
+# Run from project root: ./run_update_today
+# Uses device-apps-dashboard/.env (same as Device Apps Dashboard); or repo root .env or environment
+
+set -e
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT"
+
+PYTHON=python
+if [ -d ".venv" ]; then
+  PYTHON=./.venv/bin/python
+elif [ -d "venv" ]; then
+  PYTHON=./venv/bin/python
+fi
+
+SCRIPT="$ROOT/scripts/update_today.py"
+if [ ! -f "$SCRIPT" ]; then
+  echo "Error: scripts/update_today.py not found at $SCRIPT" >&2
+  exit 1
+fi
+
+if [ "$PYTHON" != "python" ]; then
+  echo "Ensuring dependencies are installed..."
+  $PYTHON -m pip install -q atlassian-python-api beautifulsoup4 python-dotenv 2>/dev/null || true
+fi
+
+exec $PYTHON "$SCRIPT"

@@ -11,7 +11,8 @@ from src.pages.login_page import LoginPage
 
 
 def main():
-    factory = WebDriverFactory("chrome")
+    from src.config import settings
+    factory = WebDriverFactory(settings.browser, headless=settings.headless)
     driver = factory.create_driver()
     driver.get("https://lab.care.ai")
 

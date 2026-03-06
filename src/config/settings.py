@@ -8,5 +8,5 @@ except ValueError:
     timeout = 10
 
 # browser configuration
-browser = os.getenv("BROWSER", "chrome")  # Options: chrome, firefox, edge, safari
+browser = os.getenv("BROWSER", "edge")  # Options: chrome, firefox, edge, safari
 headless = os.getenv("HEADLESS", "False").lower() in ("true", "1", "yes")  # run in headless mode if set

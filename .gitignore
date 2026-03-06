@@ -1,2 +1,13 @@
 # Test run screenshots (virtual_monitoring.py)
 screenshots/
+
+# Personal todo/notes (not for the repo)
+TODO.md
+
+# Virtual environments
+.venv/
+venv/
+
+# Local env and IDE
+.env
+.cursor/

@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# Start the Jira Team Dashboard and open it in the browser.
+# Run from project root: ./run_jira_dashboard
+# Requires JIRA_URL, JIRA_EMAIL, JIRA_API_TOKEN in jira-dashboard/.env
+
+set -e
+# Project root = directory containing this script (run_jira_dashboard)
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT"
+
+PYTHON=python
+if [ -d ".venv" ]; then
+  PYTHON=./.venv/bin/python
+elif [ -d "venv" ]; then
+  PYTHON=./venv/bin/python
+fi
+if [ "$PYTHON" != "python" ]; then
+  echo "Ensuring dependencies are installed..."
+  $PYTHON -m pip install -q -r "$ROOT/jira-dashboard/requirements.txt" 2>/dev/null || true
+  $PYTHON -m pip install -q -r "$ROOT/requirements.txt" 2>/dev/null || true
+fi
+
+SERVER_PY="$ROOT/jira-dashboard/server.py"
+if [ ! -f "$SERVER_PY" ]; then
+  echo "Error: jira-dashboard/server.py not found at $SERVER_PY" >&2
+  exit 1
+fi
+
+PORT=${PORT:-5557}
+ERR=$(mktemp)
+PID=
+cleanup() {
+  rm -f "$ERR"
+  if [ -n "$PID" ]; then
+    kill -TERM -"$PID" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
+trap 'cleanup; exit 130' INT
+trap 'cleanup; exit 143' TERM
+
+# Run server in its own process group so Ctrl+C kills the Flask reloader child too
+set -m
+while true; do
+  echo "Starting Jira Team Dashboard at http://127.0.0.1:$PORT"
+  PORT=$PORT $PYTHON "$SERVER_PY" 2>"$ERR" &
+  PID=$!
+  sleep 2
+  if kill -0 "$PID" 2>/dev/null; then
+    break
+  fi
+  if grep -qE "Address already in use|port is already in use|Errno 48|OSError.*\[Errno 48\]" "$ERR" 2>/dev/null; then
+    echo "Port $PORT in use, trying $((PORT+1))..."
+    PORT=$((PORT+1))
+  else
+    echo "Server failed to start:" >&2
+    cat "$ERR" >&2
+    exit 1
+  fi
+done
+set +m
+
+OPEN_URL="http://127.0.0.1:$PORT"
+if [[ "$(uname)" == "Darwin" ]]; then
+  if [ -d "/Applications/Google Chrome.app" ]; then
+    open -a "Google Chrome" "$OPEN_URL"
+  else
+    open "$OPEN_URL"
+  fi
+elif command -v google-chrome &>/dev/null; then
+  google-chrome "$OPEN_URL" &>/dev/null &
+else
+  echo "Dashboard running at $OPEN_URL (open in your browser)"
+fi
+
+wait $PID
