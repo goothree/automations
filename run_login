@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Run only the login test (test_login_success).
+set -e
+cd "$(dirname "$0")"
+if [[ -x .venv/bin/pytest ]]; then
+  .venv/bin/pytest src/tests/test_login.py -v "$@"
+else
+  pytest src/tests/test_login.py -v "$@"
+fi

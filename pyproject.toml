@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "selenium-python-project"
+name = "care-ai"
 version = "0.1.0"
-description = "A project for developing Selenium scripts using Python."
+description = "care.ai – Selenium automation and tests."
 authors = ["Your Name <youremail@example.com>"]
 license = "MIT"
 

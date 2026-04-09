@@ -11,12 +11,26 @@ from src.pages.login_page import LoginPage
 from src.utils.helpers import handle_google_oauth_flow, handle_auth0_continue
 
 
+def _set_window_size_to_fit_screen(driver, preferred_width=1920, preferred_height=1080):
+    """Set window size to preferred dimensions, or the max the screen allows if smaller."""
+    try:
+        driver.get("about:blank")
+        w, h = driver.execute_script(
+            "return [window.screen.availWidth || 1920, window.screen.availHeight || 1080];"
+        )
+        width = min(preferred_width, int(w)) if w else preferred_width
+        height = min(preferred_height, int(h)) if h else preferred_height
+        driver.set_window_size(width, height)
+    except Exception:
+        driver.set_window_size(preferred_width, preferred_height)
+
+
 @pytest.fixture(scope="function")
 def driver():
     """Initialize and tear down the webdriver instance."""
     factory = WebDriverFactory(settings.browser, headless=settings.headless)
     driver_instance = factory.create_driver()
-    driver_instance.set_window_size(1920, 1080)
+    _set_window_size_to_fit_screen(driver_instance, 1920, 1080)
     yield driver_instance
     driver_instance.quit()
 

@@ -57,9 +57,15 @@ def _screenshot(driver, step_name):
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
             "screenshots",
         )
-        _prune_old_screenshot_runs(base)
-        _screenshot_dir = os.path.join(base, datetime.now().strftime("%Y%m%d_%H%M%S"))
-        os.makedirs(_screenshot_dir, exist_ok=True)
+        env_run = os.environ.get("VM_SCREENSHOT_RUN_DIR")
+        if env_run:
+            _screenshot_dir = os.path.abspath(env_run)
+            _prune_old_screenshot_runs(base)
+            os.makedirs(_screenshot_dir, exist_ok=True)
+        else:
+            _prune_old_screenshot_runs(base)
+            _screenshot_dir = os.path.join(base, datetime.now().strftime("%Y%m%d_%H%M%S"))
+            os.makedirs(_screenshot_dir, exist_ok=True)
     path = os.path.join(_screenshot_dir, f"{step_name}.png")
     driver.save_screenshot(path)
     print(f"   📷 Screenshot: {path}")

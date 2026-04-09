@@ -1,0 +1,10 @@
+[
+  {
+    "key": "cmd+shift+d",
+    "command": "editor.action.insertSnippet",
+    "when": "editorTextFocus && resourceDirname =~ /care\\.ai/",
+    "args": {
+      "snippet": "${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DAY}"
+    }
+  }
+]

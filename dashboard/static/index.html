@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Selenium Test Runner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --text-muted: #a1a1aa;
+      --accent: #22d3ee;
+      --accent-dim: #0891b2;
+      --success: #4ade80;
+      --error: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .layout {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    h1 {
+      font-weight: 600;
+      font-size: 1.75rem;
+      margin: 0 0 0.5rem 0;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 500;
+      margin: 0 0 1rem 0;
+      color: var(--text-muted);
+    }
+    .tests-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .tests-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+    }
+    .tests-list li:last-child { border-bottom: none; }
+    .tests-list input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .tests-list label { cursor: pointer; flex: 1; }
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    button {
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 500;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    button:active { transform: scale(0.98); }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .btn-primary:hover { background: #67e8f9; }
+    .btn-primary:disabled {
+      background: var(--border);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover { background: #3f3f46; }
+    .results-section { display: none; }
+    .results-section.visible { display: block; }
+    .result-badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+    .result-badge.pass { background: rgba(74, 222, 128, 0.2); color: var(--success); }
+    .result-badge.fail { background: rgba(248, 113, 113, 0.2); color: var(--error); }
+    .output-log {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background: #0c0c0e;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      max-height: 320px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+    .screenshots h3 {
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin: 0 0 0.75rem 0;
+      color: var(--text-muted);
+    }
+    .screenshot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    .screenshot-item {
+      background: #0c0c0e;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .screenshot-item img {
+      width: 100%;
+      height: auto;
+      display: block;
+      vertical-align: top;
+    }
+    .screenshot-item .caption {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .loading {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .error-msg {
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid rgba(248, 113, 113, 0.3);
+      color: var(--error);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    .spinner {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .terminal-card {
+      margin-top: 1.5rem;
+    }
+    .terminal-card h2 { margin-bottom: 0.5rem; }
+    .terminal-cwd {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .terminal-input-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .terminal-prompt {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .terminal-input {
+      flex: 1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      padding: 0.5rem 0.75rem;
+      background: #0c0c0e;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      outline: none;
+    }
+    .terminal-input:focus { border-color: var(--accent); }
+    .terminal-output {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background: #0c0c0e;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      min-height: 200px;
+      max-height: 400px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text-muted);
+    }
+    .terminal-output .cmd-line { color: var(--accent); margin-bottom: 0.25rem; }
+    .terminal-output .exit-code { color: var(--text-muted); font-size: 0.75rem; margin-top: 0.25rem; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <h1>Selenium Test Runner</h1>
+    <p class="subtitle">Select tests, run them, and view results and screenshots.</p>
+
+    <div class="card">
+      <h2>Tests</h2>
+      <div id="tests-loading" class="loading">Loading tests…</div>
+      <ul id="tests-list" class="tests-list" style="display: none;"></ul>
+      <div id="tests-error" class="error-msg" style="display: none;"></div>
+      <div class="actions">
+        <button type="button" id="refresh-tests" class="btn-secondary">Refresh tests</button>
+        <button type="button" id="select-all" class="btn-secondary">Select all</button>
+        <button type="button" id="select-none" class="btn-secondary">Select none</button>
+        <button type="button" id="run-tests" class="btn-primary" disabled>Run selected</button>
+      </div>
+    </div>
+
+    <div id="results-section" class="results-section card">
+      <h2>Results</h2>
+      <div id="result-badge" class="result-badge" style="display: none;"></div>
+      <div id="output-log" class="output-log" style="display: none;"></div>
+      <div id="screenshots" class="screenshots" style="display: none;"></div>
+    </div>
+
+    <div class="card terminal-card">
+      <h2>Terminal</h2>
+      <div class="terminal-cwd" id="terminal-cwd">Project root: <span id="terminal-cwd-path"></span></div>
+      <div class="terminal-input-row">
+        <span class="terminal-prompt" id="terminal-prompt">$</span>
+        <input type="text" class="terminal-input" id="terminal-input" placeholder="Enter command (e.g. pytest src/tests/test_example.py -v)" spellcheck="false" autocomplete="off" />
+        <button type="button" id="terminal-run" class="btn-primary">Run</button>
+      </div>
+      <div class="terminal-output" id="terminal-output">Output will appear here. Commands run in the project root with PYTHONPATH set.</div>
+    </div>
+  </div>
+
+  <script>
+    const API = ''; // same origin when served by Flask
+
+    const testsListEl = document.getElementById('tests-list');
+    const testsLoadingEl = document.getElementById('tests-loading');
+    const testsErrorEl = document.getElementById('tests-error');
+    const runBtn = document.getElementById('run-tests');
+    const resultsSection = document.getElementById('results-section');
+    const resultBadge = document.getElementById('result-badge');
+    const outputLog = document.getElementById('output-log');
+    const screenshotsEl = document.getElementById('screenshots');
+
+    function showError(container, message) {
+      container.textContent = message;
+      container.style.display = 'block';
+    }
+
+    function hideError(container) {
+      container.style.display = 'none';
+    }
+
+    async function loadTests(showLoading = true) {
+      const refreshBtn = document.getElementById('refresh-tests');
+      if (showLoading) {
+        testsListEl.style.display = 'none';
+        testsLoadingEl.style.display = 'block';
+        testsLoadingEl.textContent = 'Loading tests…';
+        hideError(testsErrorEl);
+        refreshBtn.disabled = true;
+      }
+      try {
+        const res = await fetch(API + '/api/tests');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load tests');
+        renderTests(data.tests || []);
+        testsLoadingEl.style.display = 'none';
+        testsListEl.style.display = 'block';
+        hideError(testsErrorEl);
+      } catch (e) {
+        testsLoadingEl.style.display = 'none';
+        showError(testsErrorEl, e.message);
+      } finally {
+        refreshBtn.disabled = false;
+      }
+    }
+
+    function renderTests(tests) {
+      testsListEl.innerHTML = '';
+      tests.forEach(id => {
+        const li = document.createElement('li');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = 'test-' + id.replace(/[^a-zA-Z0-9]/g, '_');
+        cb.value = id;
+        cb.addEventListener('change', updateRunButton);
+        const label = document.createElement('label');
+        label.htmlFor = cb.id;
+        label.textContent = id;
+        li.appendChild(cb);
+        li.appendChild(label);
+        testsListEl.appendChild(li);
+      });
+      updateRunButton();
+    }
+
+    function updateRunButton() {
+      const checked = document.querySelectorAll('#tests-list input:checked');
+      runBtn.disabled = checked.length === 0;
+    }
+
+    document.getElementById('select-all').addEventListener('click', () => {
+      document.querySelectorAll('#tests-list input').forEach(cb => cb.checked = true);
+      updateRunButton();
+    });
+    document.getElementById('select-none').addEventListener('click', () => {
+      document.querySelectorAll('#tests-list input').forEach(cb => cb.checked = false);
+      updateRunButton();
+    });
+
+    function getSelectedTests() {
+      return Array.from(document.querySelectorAll('#tests-list input:checked')).map(cb => cb.value);
+    }
+
+    async function runTests() {
+      const tests = getSelectedTests();
+      if (!tests.length) return;
+      runBtn.disabled = true;
+      runBtn.innerHTML = '<span class="spinner"></span> Running…';
+      resultsSection.classList.add('visible');
+      resultBadge.style.display = 'none';
+      outputLog.style.display = 'none';
+      screenshotsEl.style.display = 'none';
+
+      try {
+        const res = await fetch(API + '/api/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tests }),
+        });
+        const data = await res.json();
+
+        resultBadge.textContent = data.passed ? 'All passed' : 'Failed';
+        resultBadge.className = 'result-badge ' + (data.passed ? 'pass' : 'fail');
+        resultBadge.style.display = 'inline-block';
+
+        outputLog.textContent = data.output || '(no output)';
+        outputLog.style.display = 'block';
+
+        if (data.screenshot_folders && data.screenshot_folders.length > 0) {
+          screenshotsEl.style.display = 'block';
+          screenshotsEl.innerHTML = '<h3>Screenshots from this run</h3>';
+          for (const folder of data.screenshot_folders) {
+            const listRes = await fetch(API + '/api/screenshots/' + folder);
+            const listData = await listRes.json();
+            if (listData.files && listData.files.length > 0) {
+              const grid = document.createElement('div');
+              grid.className = 'screenshot-grid';
+              for (const file of listData.files) {
+                const url = API + '/api/screenshots/' + folder + '/' + encodeURIComponent(file);
+                const item = document.createElement('div');
+                item.className = 'screenshot-item';
+                item.innerHTML = '<img src="' + url + '" alt="' + file + '" loading="lazy" /><div class="caption">' + file + '</div>';
+                grid.appendChild(item);
+              }
+              screenshotsEl.appendChild(grid);
+            }
+          }
+        }
+      } catch (e) {
+        resultBadge.textContent = 'Error';
+        resultBadge.className = 'result-badge fail';
+        resultBadge.style.display = 'inline-block';
+        outputLog.textContent = e.message;
+        outputLog.style.display = 'block';
+      } finally {
+        runBtn.disabled = false;
+        runBtn.textContent = 'Run selected';
+      }
+    }
+
+    runBtn.addEventListener('click', runTests);
+
+    document.getElementById('refresh-tests').addEventListener('click', () => loadTests(true));
+
+    // Terminal
+    const terminalInput = document.getElementById('terminal-input');
+    const terminalOutput = document.getElementById('terminal-output');
+    const terminalRunBtn = document.getElementById('terminal-run');
+    const terminalCwdPath = document.getElementById('terminal-cwd-path');
+    let terminalHistory = [];
+    let terminalHistoryIndex = -1;
+
+    async function fetchCwd() {
+      try {
+        const r = await fetch(API + '/api/terminal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: 'pwd' }),
+        });
+        const d = await r.json();
+        if (d.output) terminalCwdPath.textContent = d.output.trim();
+      } catch (_) { terminalCwdPath.textContent = '(project root)'; }
+    }
+    fetchCwd();
+
+    function appendTerminalEntry(cmd, output, exitCode) {
+      if (terminalOutput.childNodes.length === 1 && terminalOutput.firstChild.nodeType === Node.TEXT_NODE) {
+        terminalOutput.textContent = '';
+      }
+      const line = document.createElement('div');
+      line.className = 'cmd-line';
+      line.textContent = '$ ' + cmd;
+      terminalOutput.appendChild(line);
+      const out = document.createElement('div');
+      out.textContent = output || '(no output)';
+      terminalOutput.appendChild(out);
+      if (exitCode !== undefined && exitCode !== null) {
+        const exit = document.createElement('div');
+        exit.className = 'exit-code';
+        exit.textContent = 'Exit code: ' + exitCode;
+        terminalOutput.appendChild(exit);
+      }
+      terminalOutput.scrollTop = terminalOutput.scrollHeight;
+    }
+
+    async function runTerminalCommand() {
+      const cmd = terminalInput.value.trim();
+      if (!cmd) return;
+      terminalHistory.push(cmd);
+      terminalHistoryIndex = terminalHistory.length;
+      terminalInput.value = '';
+      terminalRunBtn.disabled = true;
+      terminalRunBtn.textContent = 'Running…';
+      appendTerminalEntry(cmd, '(running…)', null);
+
+      try {
+        const res = await fetch(API + '/api/terminal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: cmd }),
+        });
+        const data = await res.json();
+        const out = data.output || '';
+        const code = data.exit_code;
+        // Last child is the "(running…)" div; replace its text with real output
+        terminalOutput.lastChild.textContent = out || '(no output)';
+        if (code !== undefined && code !== null) {
+          const exitEl = document.createElement('div');
+          exitEl.className = 'exit-code';
+          exitEl.textContent = 'Exit code: ' + code;
+          terminalOutput.appendChild(exitEl);
+        }
+      } catch (e) {
+        terminalOutput.lastChild.textContent = 'Error: ' + e.message;
+        const exitEl = document.createElement('div');
+        exitEl.className = 'exit-code';
+        exitEl.textContent = 'Exit code: —';
+        terminalOutput.appendChild(exitEl);
+      }
+      terminalOutput.scrollTop = terminalOutput.scrollHeight;
+      terminalRunBtn.disabled = false;
+      terminalRunBtn.textContent = 'Run';
+    }
+
+    terminalRunBtn.addEventListener('click', runTerminalCommand);
+    terminalInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') runTerminalCommand();
+      else if (e.key === 'ArrowUp' && terminalHistory.length) {
+        e.preventDefault();
+        if (terminalHistoryIndex > 0) {
+          terminalHistoryIndex--;
+          terminalInput.value = terminalHistory[terminalHistoryIndex];
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (terminalHistoryIndex < terminalHistory.length - 1) {
+          terminalHistoryIndex++;
+          terminalInput.value = terminalHistory[terminalHistoryIndex];
+        } else if (terminalHistoryIndex === terminalHistory.length - 1) {
+          terminalHistoryIndex = terminalHistory.length;
+          terminalInput.value = '';
+        }
+      }
+    });
+
+    loadTests();
+  </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Run all tests.
+set -e
+cd "$(dirname "$0")"
+if [[ -x .venv/bin/pytest ]]; then
+  .venv/bin/pytest src/tests/ -v "$@"
+else
+  pytest src/tests/ -v "$@"
+fi

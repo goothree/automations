@@ -1362,8 +1362,8 @@ def _try_click_el(driver, el):
 
 def _click_next_page(driver):
     """
-    Click to go to the next page. Uses structure:
-    div.room-pagination > div.pages > span.icon-right-chev (no disabled), or span with page number (2, 3, ...).
+    Click to go to the NEXT page only. Uses the right-chev (next) control so we
+    always advance one page; never click a page number (that can jump back to 2).
     """
     time.sleep(0.2)
     _scroll_to_bottom(driver)
@@ -1371,39 +1371,7 @@ def _click_next_page(driver):
 
     root = _get_room_pagination_root(driver)
     if root:
-        # 1) Click page number "2" (or next number) — most reliable when structure is span with text
-        try:
-            for page_num in ["2", "3", "4", "5"]:
-                spans = root.find_elements(By.XPATH, f".//span[normalize-space(.)='{page_num}']")
-                for span in spans:
-                    if not span.is_displayed():
-                        continue
-                    if "active" in (span.get_attribute("class") or ""):
-                        continue
-                    if _try_click_el(driver, span):
-                        print(f"   📄 Clicked page {page_num}")
-                        time.sleep(0.5)
-                        return True
-        except Exception:
-            pass
-
-        # 2) Click span.icon.icon-right-chev that does NOT have class "disabled"
-        try:
-            right_chevrons = root.find_elements(By.CSS_SELECTOR, "span.icon-right-chev")
-            for span in right_chevrons:
-                if not span.is_displayed():
-                    continue
-                cls = (span.get_attribute("class") or "")
-                if "disabled" in cls:
-                    continue
-                if _try_click_el(driver, span):
-                    print("   📄 Clicked Next (right-chev)")
-                    time.sleep(0.5)
-                    return True
-        except Exception:
-            pass
-
-        # 3) Same via XPath (no disabled)
+        # Prefer right-chev (next) so we always advance; avoid clicking page numbers (could go backward)
         try:
             right_chevrons = root.find_elements(
                 By.XPATH,
@@ -1418,18 +1386,28 @@ def _click_next_page(driver):
                     return True
         except Exception:
             pass
-
-    # Fallback without scoping to room-pagination
-    try:
-        for xpath in [
-            "//div[contains(@class, 'room-pagination')]//span[contains(@class, 'icon-right-chev') and not(contains(@class, 'disabled'))]",
-            "//div[contains(@class, 'room-pagination')]//span[normalize-space(.)='2']",
-        ]:
-            for el in driver.find_elements(By.XPATH, xpath):
-                if el.is_displayed() and _try_click_el(driver, el):
-                    print("   📄 Clicked Next page")
+        try:
+            for span in root.find_elements(By.CSS_SELECTOR, "span.icon-right-chev"):
+                if not span.is_displayed():
+                    continue
+                if "disabled" in (span.get_attribute("class") or ""):
+                    continue
+                if _try_click_el(driver, span):
+                    print("   📄 Clicked Next (right-chev)")
                     time.sleep(0.5)
                     return True
+        except Exception:
+            pass
+
+    try:
+        for el in driver.find_elements(
+            By.XPATH,
+            "//div[contains(@class, 'room-pagination')]//span[contains(@class, 'icon-right-chev') and not(contains(@class, 'disabled'))]"
+        ):
+            if el.is_displayed() and _try_click_el(driver, el):
+                print("   📄 Clicked Next page")
+                time.sleep(0.5)
+                return True
     except Exception:
         pass
     return False
@@ -1513,6 +1491,19 @@ def go_to_first_page(driver):
             continue
     _scroll_to_top(driver)
     return False
+
+
+def _advance_to_next_page_in_cycle(driver):
+    """
+    Advance to the next pagination page so we cycle through all streams.
+    If we're on the last page, go back to page 1. Call at the start of each
+    monitoring interval so every page gets visited (1 -> 2 -> ... -> N -> 1 -> ...).
+    """
+    if _click_next_page(driver):
+        _scroll_to_top(driver)
+        return True
+    go_to_first_page(driver)
+    return True
 
 
 def _get_room_tiles_for_ptz(driver):
@@ -1685,11 +1676,223 @@ def _click_ptz_direction(driver, direction, context_el=None):
     return False
 
 
+def _find_alert_button(driver, context_el=None):
+    """
+    Find the play-alert button (span.alert.icon-alert) in the session/tile.
+    If context_el is given, search within it; otherwise search the whole page.
+    Returns the WebElement or None.
+    """
+    selectors = [
+        (By.CSS_SELECTOR, "span.alert.icon-alert"),
+        (By.CSS_SELECTOR, "span.icon-alert.alert"),
+        (By.CSS_SELECTOR, "[class*='alert'][class*='icon-alert']"),
+        (By.XPATH, "//span[contains(@class, 'alert') and contains(@class, 'icon-alert')]"),
+        (By.CSS_SELECTOR, ".alert.tooltipstered"),
+    ]
+    for by, selector in selectors:
+        try:
+            roots = [context_el] if context_el else [None]
+            for root in roots:
+                els = root.find_elements(by, selector) if root else driver.find_elements(by, selector)
+                for el in els:
+                    if el.is_displayed():
+                        return el
+        except Exception:
+            continue
+    return None
+
+
+def _is_any_audio_playing(driver):
+    """
+    Return True if any <audio> (or non-video-stream <video>) element is currently playing.
+    Used to infer that the alert sound played; we cannot literally hear audio in the test.
+    """
+    try:
+        result = driver.execute_script(
+            """
+            var audios = document.querySelectorAll('audio');
+            for (var i = 0; i < audios.length; i++) {
+                var a = audios[i];
+                if (!a.paused && a.currentTime > 0 && !a.ended) return true;
+            }
+            return false;
+            """
+        )
+        return bool(result)
+    except Exception:
+        return False
+
+
+def _inject_web_audio_source_spy(driver):
+    """
+    Inject a one-time patch so we detect Web Audio playback for the alert:
+    1) Patch AudioBufferSourceNode and OscillatorNode .start() to set a flag.
+    2) Wrap AudioContext constructor to track contexts; we can detect "running" state as fallback.
+    Runs in the main window and in the first same-origin iframe (in case the app lives there).
+    """
+    script = """
+            if (window.__webAudioSourceSpyInjected) return;
+            window.__webAudioSourceSpyInjected = true;
+            window.__webAudioSourceStarted = false;
+            window.__webAudioContexts = [];
+            try {
+                var proto = window.HTMLMediaElement && HTMLMediaElement.prototype;
+                if (proto && proto.play && !proto.play.__alertSpy) {
+                    var orig = proto.play;
+                    proto.play = function() {
+                        if (this.tagName === 'AUDIO') window.__webAudioSourceStarted = true;
+                        return orig.apply(this, arguments);
+                    };
+                    proto.play.__alertSpy = true;
+                }
+            } catch (e) {}
+            var RealAC = window.AudioContext || window.webkitAudioContext;
+            if (!RealAC) return;
+            try {
+                var ctx = new RealAC();
+                var buf = ctx.createBufferSource();
+                var osc = ctx.createOscillator();
+                if (buf && buf.constructor && buf.constructor.prototype) {
+                    var p = buf.constructor.prototype;
+                    if (p.start) {
+                        var orig = p.start;
+                        p.start = function() {
+                            window.__webAudioSourceStarted = true;
+                            return orig.apply(this, arguments);
+                        };
+                    }
+                }
+                if (osc && osc.constructor && osc.constructor.prototype) {
+                    var p = osc.constructor.prototype;
+                    if (p.start) {
+                        var orig = p.start;
+                        p.start = function() {
+                            window.__webAudioSourceStarted = true;
+                            return orig.apply(this, arguments);
+                        };
+                    }
+                }
+                ctx.close();
+            } catch (e) {}
+            var OrigAC = window.AudioContext || window.webkitAudioContext;
+            if (OrigAC) {
+                var Wrapper = function() {
+                    var c = new OrigAC();
+                    window.__webAudioContexts.push(c);
+                    return c;
+                };
+                Wrapper.prototype = OrigAC.prototype;
+                if (window.AudioContext) window.AudioContext = Wrapper;
+                if (window.webkitAudioContext) window.webkitAudioContext = Wrapper;
+            }
+            """
+    try:
+        driver.execute_script(script)
+    except Exception:
+        pass
+    try:
+        iframes = driver.find_elements(By.TAG_NAME, "iframe")
+        for iframe in iframes[:3]:
+            try:
+                driver.switch_to.frame(iframe)
+                driver.execute_script(script)
+                driver.switch_to.default_content()
+                break
+            except Exception:
+                try:
+                    driver.switch_to.default_content()
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+
+def _web_audio_source_started(driver):
+    """True if the spy saw a source .start() or if running context count increased (fallback)."""
+    try:
+        if driver.execute_script("return window.__webAudioSourceStarted === true;"):
+            return True
+        baseline = driver.execute_script(
+            "return typeof window.__webAudioRunningCountBaseline === 'number' ? window.__webAudioRunningCountBaseline : 0;"
+        )
+        current = driver.execute_script(
+            """
+            if (!window.__webAudioContexts) return 0;
+            return window.__webAudioContexts.filter(function(c){ return c.state === 'running'; }).length;
+            """
+        )
+        return (current or 0) > (baseline or 0)
+    except Exception:
+        return False
+
+
+def _clear_web_audio_source_flag(driver):
+    """Reset the Web Audio spy flag and record running-context baseline before triggering the alert."""
+    try:
+        driver.execute_script(
+            """
+            window.__webAudioSourceStarted = false;
+            window.__webAudioRunningCountBaseline = (window.__webAudioContexts || []).filter(function(c){ return c.state === 'running'; }).length;
+            """
+        )
+    except Exception:
+        pass
+
+
+def _play_alert_then_stop(driver, context_el, play_duration_seconds=2):
+    """
+    Click the session's alert button to play, wait play_duration_seconds, then click again to stop.
+    Detects playback via <audio> elements and/or Web Audio (injected spy for createBufferSource().start()).
+    Prints "Alert played: yes" or "Alert played: no".
+    Returns True if the alert button was found and clicked at least once.
+    """
+    btn = _find_alert_button(driver, context_el)
+    if not btn:
+        return False
+    _clear_web_audio_source_flag(driver)
+    try:
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center', behavior: 'instant'});", btn)
+        time.sleep(0.05)
+    except Exception:
+        pass
+    try:
+        btn.click()
+    except Exception:
+        try:
+            driver.execute_script("arguments[0].click();", btn)
+        except Exception:
+            return False
+    audio_detected = False
+    deadline = time.time() + play_duration_seconds
+    while time.time() < deadline:
+        if _is_any_audio_playing(driver):
+            audio_detected = True
+        if _web_audio_source_started(driver):
+            audio_detected = True
+        time.sleep(0.2)
+    try:
+        btn.click()
+    except Exception:
+        try:
+            driver.execute_script("arguments[0].click();", btn)
+        except Exception:
+            pass
+    if audio_detected:
+        print("      Alert played: yes")
+    else:
+        print("      Alert played: no")
+    return True
+
+
 def run_monitoring_with_ptz(driver, duration_seconds=180, interval_seconds=10):
     """
-    Run the monitoring session for duration_seconds. Every interval_seconds, randomly
-    select a room and trigger random PTZ directions (up, down, left, right) several times.
+    Run the monitoring session for duration_seconds. Every interval_seconds, advance to
+    the next page (cycling 1 -> 2 -> ... -> N -> 1), then select a room and trigger
+    random PTZ and optionally play the alert. This ensures every page is visited.
     """
+    _inject_web_audio_source_spy(driver)
+    go_to_first_page(driver)
+    time.sleep(0.3)
     directions = ["up", "down", "left", "right"]
     elapsed = 0
     interval_count = 0
@@ -1703,6 +1906,7 @@ def run_monitoring_with_ptz(driver, duration_seconds=180, interval_seconds=10):
 
         tiles = _get_room_tiles_for_ptz(driver)
         if not tiles:
+            _advance_to_next_page_in_cycle(driver)
             continue
         room = random.choice(tiles)
         try:
@@ -1731,6 +1935,13 @@ def run_monitoring_with_ptz(driver, duration_seconds=180, interval_seconds=10):
             elif _click_ptz_direction(driver, d):
                 print(f"      PTZ {d} (arrows)")
             time.sleep(0.25 + random.uniform(0, 0.25))
+
+        if random.random() < 0.4:
+            if _play_alert_then_stop(driver, context_el=room, play_duration_seconds=2):
+                print(f"      Played alert for 2s then stopped")
+            time.sleep(0.3)
+
+        _advance_to_next_page_in_cycle(driver)
 
     print(f"✅ Monitoring with PTZ completed ({duration_seconds}s)")
 

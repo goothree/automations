@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Run the virtual monitoring test (login + VM flow).
+# Creates screenshots/<timestamp>/ and writes pytest output to run_vm.log there
+# (virtual_monitoring.py uses VM_SCREENSHOT_RUN_DIR so screenshots match this folder).
+set -eo pipefail
+cd "$(dirname "$0")"
+RUN_DIR="$(pwd)/screenshots/$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$RUN_DIR"
+export VM_SCREENSHOT_RUN_DIR="$RUN_DIR"
+LOG_FILE="$RUN_DIR/run_vm.log"
+
+if [[ -x .venv/bin/pytest ]]; then
+  .venv/bin/pytest src/tests/virtual_monitoring.py::test_login_with_extra_step -v "$@" 2>&1 | tee "$LOG_FILE"
+else
+  pytest src/tests/virtual_monitoring.py::test_login_with_extra_step -v "$@" 2>&1 | tee "$LOG_FILE"
+fi

@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Start the Test Runner Dashboard and open it in Chrome.
+# Run from project root: ./run_dashboard
+
+set -e
+cd "$(dirname "$0")"
+
+PYTHON=python
+if [ -d ".venv" ]; then
+  PYTHON=./.venv/bin/python
+elif [ -d "venv" ]; then
+  PYTHON=./venv/bin/python
+fi
+if [ "$PYTHON" != "python" ]; then
+  echo "Ensuring dependencies are installed..."
+  $PYTHON -m pip install -q -r requirements.txt
+fi
+
+if [ ! -f "dashboard/server.py" ]; then
+  echo "Error: dashboard/server.py not found. Run from project root." >&2
+  exit 1
+fi
+
+PORT=${PORT:-5556}
+ERR=$(mktemp)
+trap 'rm -f "$ERR"' EXIT
+
+while true; do
+  echo "Starting Test Runner Dashboard at http://127.0.0.1:$PORT"
+  PORT=$PORT $PYTHON dashboard/server.py 2>"$ERR" &
+  PID=$!
+  sleep 2
+  if kill -0 "$PID" 2>/dev/null; then
+    break
+  fi
+  if grep -qE "Address already in use|port is already in use|Errno 48|OSError.*\[Errno 48\]" "$ERR" 2>/dev/null; then
+    echo "Port $PORT in use, trying $((PORT+1))..."
+    PORT=$((PORT+1))
+  else
+    echo "Server failed to start:" >&2
+    cat "$ERR" >&2
+    exit 1
+  fi
+done
+
+# Open in Chrome (macOS); fallback to default browser or Chrome on PATH
+OPEN_URL="http://127.0.0.1:$PORT"
+if [[ "$(uname)" == "Darwin" ]]; then
+  if [ -d "/Applications/Google Chrome.app" ]; then
+    open -a "Google Chrome" "$OPEN_URL"
+  else
+    open "$OPEN_URL"
+  fi
+elif command -v google-chrome &>/dev/null; then
+  google-chrome "$OPEN_URL" &>/dev/null &
+elif command -v chromium-browser &>/dev/null; then
+  chromium-browser "$OPEN_URL" &>/dev/null &
+else
+  echo "Dashboard running at $OPEN_URL (open in your browser)"
+fi
+
+wait $PID
