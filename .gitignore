@@ -1,6 +1,9 @@
 # Test run screenshots (virtual_monitoring.py)
 screenshots/
 
+# Saved HTML dumps (may contain embedded keys or session noise)
+page_dump*.html
+
 # Personal todo/notes (not for the repo)
 TODO.md
 
