@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Generate lab device apps report from MongoDB.
+# Run from project root: ./run_lab_device_apps_report
+#
+# Set MONGODB_URI in .env at project root (see reports/.env.example).
+
+set -e
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT"
+
+PYTHON=python3
+if [ -d ".venv" ]; then
+  PYTHON=./.venv/bin/python
+elif [ -d "venv" ]; then
+  PYTHON=./venv/bin/python
+fi
+
+if ! $PYTHON -c "import pymongo" 2>/dev/null; then
+  echo "Installing pymongo..."
+  $PYTHON -m pip install -q pymongo
+fi
+
+exec $PYTHON "$ROOT/scripts/generate_lab_device_apps_report.py" "$@"
