@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Run IDA-5376 automated test suite (auth resilience during Virtual Monitoring).
+# Creates screenshots/<timestamp>/ and writes pytest output to run_ida_5376.log there.
+set -eo pipefail
+cd "$(dirname "$0")"
+RUN_DIR="$(pwd)/screenshots/$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$RUN_DIR"
+export IDA5376_SCREENSHOT_RUN_DIR="$RUN_DIR"
+LOG_FILE="$RUN_DIR/run_ida_5376.log"
+
+MARKERS="${IDA5376_MARKERS:-ida_5376}"
+PYTEST_ARGS=(-v "src/tests/test_ida_5376.py" -m "$MARKERS" "$@")
+
+if [[ -x .venv/bin/pytest ]]; then
+  .venv/bin/pytest "${PYTEST_ARGS[@]}" 2>&1 | tee "$LOG_FILE"
+else
+  pytest "${PYTEST_ARGS[@]}" 2>&1 | tee "$LOG_FILE"
+fi
