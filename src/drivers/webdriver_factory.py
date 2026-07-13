@@ -3,6 +3,29 @@ class WebDriverFactory:
         self.browser_type = browser_type
         self.headless = headless
 
+    @staticmethod
+    def _project_root():
+        import os
+
+        return os.path.abspath(
+            os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+        )
+
+    @classmethod
+    def _edge_driver_path(cls):
+        """Prefer project-local or explicit path over stale system PATH drivers."""
+        import os
+
+        candidates = [
+            os.environ.get("MSEDGEDRIVER_PATH"),
+            os.path.join(cls._project_root(), "drivers", "msedgedriver"),
+            "/usr/local/bin/msedgedriver",
+        ]
+        for path in candidates:
+            if path and os.path.isfile(path) and os.access(path, os.X_OK):
+                return path
+        return None
+
     def create_driver(self):
         if self.browser_type == 'chrome':
             from selenium import webdriver
@@ -49,8 +72,9 @@ class WebDriverFactory:
             # Avoid native microphone/camera permission prompt (use fake UI / auto-grant)
             options.add_argument('--use-fake-ui-for-media-stream')
             options.add_argument('--use-fake-device-for-media-stream')
-            # Use Selenium Manager to get correct msedgedriver for installed Edge
-            return webdriver.Edge(service=Service(), options=options)
+            edge_driver = self._edge_driver_path()
+            service = Service(executable_path=edge_driver) if edge_driver else Service()
+            return webdriver.Edge(service=service, options=options)
         elif self.browser_type == 'safari':
             from selenium import webdriver
             # SafariDriver is bundled with Safari on macOS

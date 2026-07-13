@@ -11,6 +11,9 @@ TODO.md
 .venv/
 venv/
 
+# Downloaded browser drivers (install via scripts/install_msedgedriver.sh)
+drivers/msedgedriver
+
 # Local env and IDE
 .env
 .cursor/

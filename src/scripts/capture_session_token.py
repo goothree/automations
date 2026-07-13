@@ -6,15 +6,15 @@ to a JSON file that the test can use for future runs.
 """
 import json
 import time
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
-# Create an Edge driver with a persistent (non-incognito) profile so cookies are saved
-options = webdriver.EdgeOptions()
-# DO NOT use incognito or temp profile - we want cookies to persist
-driver = webdriver.Edge('/usr/local/bin/msedgedriver', options=options)
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
+from src.drivers.webdriver_factory import WebDriverFactory
+
+factory = WebDriverFactory("edge", headless=False)
+driver = factory.create_driver()
 
 try:
     # Navigate to the app
