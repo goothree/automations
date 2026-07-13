@@ -10,6 +10,7 @@ from config import (
     JIRA_TEAM_JQL,
     JIRA_TEST_SCRIPT_FIELD_ID,
     JIRA_AC_FIELD_ID,
+    JIRA_APPROVERS_FIELD_ID,
     is_configured,
 )
 
@@ -65,10 +66,41 @@ def _default_jql():
     return base
 
 
+def _user_display_name(user):
+    if not isinstance(user, dict):
+        return ""
+    return (user.get("displayName") or user.get("name") or "").strip()
+
+
+def _extract_approver_names(fields):
+    """Read approver display names from the Jira Approvers multi-user field."""
+    if not JIRA_APPROVERS_FIELD_ID:
+        return ""
+
+    value = (fields or {}).get(JIRA_APPROVERS_FIELD_ID)
+    if not isinstance(value, list):
+        return ""
+
+    names = []
+    seen = set()
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        name = _user_display_name(item)
+        if not name:
+            continue
+        key = name.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        names.append(name)
+    return ", ".join(names)
+
+
 def fetch_issues(max_results=100):
     """
     Fetch issues from Jira for the dashboard.
-    Returns list of dicts with: key, summary, status, assignee, priority, due_date, link, type.
+    Returns list of dicts with: key, summary, status, approvers, priority, due_date, link, type.
     """
     client = _get_client()
     if not client:
@@ -78,7 +110,9 @@ def fetch_issues(max_results=100):
     if not jql:
         jql = _default_jql()
 
-    fields_request = "summary,status,assignee,priority,project,fixVersions"
+    fields_request = "summary,status,priority,project,fixVersions"
+    if JIRA_APPROVERS_FIELD_ID:
+        fields_request += "," + JIRA_APPROVERS_FIELD_ID
     if JIRA_TEST_SCRIPT_FIELD_ID:
         fields_request += "," + JIRA_TEST_SCRIPT_FIELD_ID
     try:
@@ -87,6 +121,8 @@ def fetch_issues(max_results=100):
         err_msg = _error_message(e)
         return {"error": err_msg, "using_team_jql": bool(JIRA_TEAM_JQL and JIRA_TEAM_JQL.strip())}
 
+    version_release_dates = _fetch_version_release_dates(client)
+
     raw_issues = result.get("issues") or []
     out = []
     base_url = JIRA_URL.rstrip("/") + "/browse/"
@@ -94,8 +130,7 @@ def fetch_issues(max_results=100):
     for raw in raw_issues:
         key = raw.get("key", "")
         fields = raw.get("fields") or {}
-        assignee = fields.get("assignee")
-        assignee_name = assignee.get("displayName", "") if assignee else "Unassigned"
+        approvers = _extract_approver_names(fields)
         status = fields.get("status") or {}
         priority = fields.get("priority") or {}
         project = fields.get("project") or {}
@@ -109,7 +144,7 @@ def fetch_issues(max_results=100):
             "key": key,
             "summary": fields.get("summary", ""),
             "status": status.get("name", ""),
-            "assignee": assignee_name,
+            "approvers": approvers,
             "priority": priority.get("name", ""),
             "project": project_key,
             "link": base_url + key,
@@ -121,6 +156,7 @@ def fetch_issues(max_results=100):
         "total": result.get("total", len(out)),
         "using_team_jql": bool(JIRA_TEAM_JQL and JIRA_TEAM_JQL.strip()),
         "jql_length": len(jql),
+        "version_release_dates": version_release_dates,
     }
 
 
@@ -213,6 +249,90 @@ def _description_to_plain(node):
     return "".join(parts)
 
 
+TEST_PLAN_SHAREPOINT_FOLDER_URL = (
+    "https://stryker-my.sharepoint.com/:f:/p/michael_guthrie/"
+    "IgBAyEORHosITrKk3lSVFca_AQejQg6tiR1NqeMAgmke7Tg?e=qJ5lz7"
+)
+TEST_PLAN_ONEDRIVE_SYNC_DIR = (
+    "/Users/michael.guthrie/Library/CloudStorage/OneDrive-Stryker/TestPlans"
+)
+TEST_PLAN_SHAREPOINT_FILE_URL_TEMPLATE = (
+    "https://stryker-my.sharepoint.com/personal/michael_guthrie_stryker_com/"
+    "Documents/TestPlans/{filename}"
+)
+
+
+def _adf_doc(*paragraphs):
+    return {"type": "doc", "version": 1, "content": list(paragraphs)}
+
+
+def _adf_paragraph(*inline_nodes):
+    return {"type": "paragraph", "content": list(inline_nodes)}
+
+
+def _adf_text(text, link_href=None):
+    node = {"type": "text", "text": text}
+    if link_href:
+        node["marks"] = [{"type": "link", "attrs": {"href": link_href}}]
+    return node
+
+
+def add_issue_comment(issue_key, body):
+    """
+    Add a comment to a Jira issue. body may be plain text (str) or ADF (dict).
+    Returns {"success": True, "comment_id": ...} or {"error": "..."}.
+    """
+    client = _get_client()
+    if not client:
+        return {"error": "Jira not configured."}
+    if not issue_key or not issue_key.strip():
+        return {"error": "Issue key is required."}
+    issue_key = issue_key.strip().upper()
+    try:
+        if isinstance(body, str):
+            payload = _adf_doc(_adf_paragraph(_adf_text(body)))
+        elif isinstance(body, dict):
+            payload = body
+        else:
+            return {"error": "Comment body must be a string or ADF document."}
+        base_url = client.resource_url("issue")
+        url = f"{base_url}/{issue_key}/comment"
+        result = client.post(url, data={"body": payload})
+        comment_id = (result or {}).get("id")
+        return {"success": True, "comment_id": comment_id}
+    except Exception as e:
+        return {"error": _error_message(e)}
+
+
+def test_plan_sharepoint_file_url(filename):
+    return TEST_PLAN_SHAREPOINT_FILE_URL_TEMPLATE.format(filename=filename)
+
+
+def add_test_plan_jira_comment(issue_key, filename):
+    """
+    Post a Jira comment linking to the test plan .docx in SharePoint.
+    Returns {"success": True, "file_url": ...} or {"error": "..."}.
+    """
+    if not filename or not filename.strip():
+        return {"error": "Test plan filename is required."}
+    filename = filename.strip()
+    file_url = test_plan_sharepoint_file_url(filename)
+    body = _adf_doc(
+        _adf_paragraph(
+            _adf_text("Test plan: "),
+            _adf_text(filename, file_url),
+        ),
+    )
+    result = add_issue_comment(issue_key, body)
+    if result.get("error"):
+        return result
+    return {
+        "success": True,
+        "comment_id": result.get("comment_id"),
+        "file_url": file_url,
+    }
+
+
 def set_test_script_url(issue_key, script_url):
     """
     Set the Test Script custom field on a Jira issue to the given URL.
@@ -268,3 +388,68 @@ def set_issue_transition(issue_key, transition_id):
         return {"success": True}
     except Exception as e:
         return {"error": _error_message(e)}
+
+
+RELEASE_PROJECTS = ("IDA", "RDAR")
+
+
+def _fetch_version_release_dates(client):
+    """Map project-prefixed version key (e.g. IDA-v2026-07) to release date."""
+    dates = {}
+    for project_key in RELEASE_PROJECTS:
+        try:
+            versions = client.get_project_versions(project_key) or []
+        except Exception:
+            continue
+        for version in versions:
+            if not isinstance(version, dict):
+                continue
+            name = (version.get("name") or "").strip()
+            if not name:
+                continue
+            dates[f"{project_key}-{name}"] = version.get("releaseDate") or ""
+    return dates
+
+
+def fetch_unreleased_releases():
+    """
+    Fetch unreleased, non-archived versions from IDA and RDAR.
+    Returns releases sorted by release date descending (newest first); undated releases last.
+    """
+    client = _get_client()
+    if not client:
+        return {"error": "Jira not configured. Set JIRA_URL, JIRA_EMAIL, JIRA_API_TOKEN in .env"}
+
+    releases = []
+    base_url = JIRA_URL.rstrip("/")
+
+    for project_key in RELEASE_PROJECTS:
+        try:
+            versions = client.get_project_versions(project_key) or []
+        except Exception as e:
+            return {"error": _error_message(e)}
+
+        for version in versions:
+            if not isinstance(version, dict):
+                continue
+            if version.get("released") or version.get("archived"):
+                continue
+            version_id = version.get("id")
+            name = (version.get("name") or "").strip()
+            release_date = version.get("releaseDate") or ""
+            link = f"{base_url}/projects/{project_key}/versions/{version_id}" if version_id else ""
+            releases.append({
+                "project": project_key,
+                "name": name or "(unnamed)",
+                "release_date": release_date,
+                "link": link,
+            })
+
+    releases.sort(
+        key=lambda release: (
+            release["release_date"] or "",
+            release["name"].lower(),
+        ),
+        reverse=True,
+    )
+    return {"releases": releases, "total": len(releases)}

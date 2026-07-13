@@ -21,6 +21,8 @@ JIRA_TEAM_JQL = (os.environ.get("JIRA_TEAM_JQL") or "").strip()
 JIRA_TEST_SCRIPT_FIELD_ID = (os.environ.get("JIRA_TEST_SCRIPT_FIELD_ID") or "").strip()
 # Optional: custom field ID for "Acceptance Criteria" (e.g. customfield_10xxx). Used when generating test steps.
 JIRA_AC_FIELD_ID = (os.environ.get("JIRA_AC_FIELD_ID") or "").strip()
+# Custom field ID for "Approvers" (user picker array). Default for care.ai Jira.
+JIRA_APPROVERS_FIELD_ID = (os.environ.get("JIRA_APPROVERS_FIELD_ID") or "customfield_10003").strip()
 
 # Testpad API (https://api.testpad.com/api/v1/ or instance-specific). API must be enabled by Testpad Support.
 TESTPAD_BASE_URL = (os.environ.get("TESTPAD_BASE_URL") or "https://api.testpad.com/api/v1").rstrip("/")

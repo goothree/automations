@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jira – Releases</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --text-muted: #a1a1aa;
+      --accent: #a78bfa;
+      --error: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .layout {
+      width: 100%;
+      max-width: min(1200px, 96vw);
+      margin: 0 auto;
+      padding: clamp(1rem, 2vw, 2rem);
+    }
+    h1 {
+      font-weight: 600;
+      font-size: 1.75rem;
+      margin: 0 0 0.5rem 0;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+    }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    button {
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+    }
+    button:hover { filter: brightness(1.1); }
+    .btn-link {
+      display: inline-block;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-link:hover { background: rgba(167, 139, 250, 0.15); }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .releases-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .releases-table th,
+    .releases-table td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .releases-table th {
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .releases-table tr:last-child td { border-bottom: none; }
+    .releases-table tbody tr:hover td { background: rgba(167, 139, 250, 0.05); }
+    .release-name a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .release-name a:hover { text-decoration: underline; }
+    .project-badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      background: rgba(167, 139, 250, 0.2);
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .loading, .error-msg, .empty-msg {
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .error-msg {
+      color: var(--error);
+      background: rgba(248, 113, 113, 0.1);
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+    .count { color: var(--text-muted); font-size: 0.9rem; }
+    .filters {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filters label {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .filters select,
+    .filters input[type="date"] {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+    .filters input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.8);
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <h1>Releases</h1>
+    <p class="subtitle">Unreleased versions from IDA and RDAR, ordered by release date (newest first)</p>
+
+    <div class="toolbar">
+      <button type="button" id="btnRefresh" onclick="loadReleases()">Refresh</button>
+      <a href="/" class="btn-link">Team Dashboard</a>
+      <div class="filters">
+        <label for="filterProject">Project</label>
+        <select id="filterProject">
+          <option value="">All</option>
+          <option value="IDA">IDA</option>
+          <option value="RDAR">RDAR</option>
+        </select>
+        <label for="filterDateFrom">From</label>
+        <input type="date" id="filterDateFrom" />
+        <label for="filterDateTo">To</label>
+        <input type="date" id="filterDateTo" />
+      </div>
+      <span class="count" id="count"></span>
+    </div>
+
+    <div id="content">
+      <div class="loading" id="loading">Loading…</div>
+      <div class="error-msg" id="error" style="display: none;"></div>
+      <div class="card" id="card" style="display: none;">
+        <table class="releases-table">
+          <thead>
+            <tr>
+              <th>Project</th>
+              <th>Release Name</th>
+              <th>Release Date</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty-msg" id="empty" style="display: none;">No releases match the current filters.</div>
+    </div>
+  </div>
+
+  <script>
+    var allReleases = [];
+    var initialReleasesLoadDone = false;
+
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text == null ? '' : String(text);
+      return div.innerHTML;
+    }
+
+    function formatReleaseDate(value) {
+      if (!value) return 'TBD';
+      var parts = String(value).split('-');
+      if (parts.length !== 3) return value;
+      var date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      if (isNaN(date.getTime())) return value;
+      return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function parseReleaseDate(value) {
+      if (!value) return null;
+      var parts = String(value).split('-');
+      if (parts.length !== 3) return null;
+      var date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      return isNaN(date.getTime()) ? null : date;
+    }
+
+    function parseInputDate(value) {
+      if (!value) return null;
+      var parts = String(value).split('-');
+      if (parts.length !== 3) return null;
+      var date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      return isNaN(date.getTime()) ? null : date;
+    }
+
+    function sortReleases(releases) {
+      return releases.slice().sort(function(a, b) {
+        var dateA = a.release_date || '';
+        var dateB = b.release_date || '';
+        if (dateA && dateB) {
+          if (dateA !== dateB) return dateB.localeCompare(dateA);
+          return a.name.localeCompare(b.name);
+        }
+        if (dateA) return -1;
+        if (dateB) return 1;
+        return a.name.localeCompare(b.name);
+      });
+    }
+
+    function getFilteredReleases() {
+      var project = document.getElementById('filterProject').value;
+      var dateFrom = parseInputDate(document.getElementById('filterDateFrom').value);
+      var dateTo = parseInputDate(document.getElementById('filterDateTo').value);
+
+      return sortReleases(allReleases.filter(function(release) {
+        if (project && release.project !== project) return false;
+
+        var releaseDate = parseReleaseDate(release.release_date);
+        if (dateFrom || dateTo) {
+          if (!releaseDate) return false;
+          if (dateFrom && releaseDate < dateFrom) return false;
+          if (dateTo && releaseDate > dateTo) return false;
+        }
+
+        return true;
+      }));
+    }
+
+    function updateView() {
+      var card = document.getElementById('card');
+      var empty = document.getElementById('empty');
+      var count = document.getElementById('count');
+      var releases = getFilteredReleases();
+
+      count.textContent = releases.length + ' of ' + allReleases.length + ' unreleased';
+
+      if (!releases.length) {
+        card.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+
+      renderTable(releases);
+      card.style.display = 'block';
+      empty.style.display = 'none';
+    }
+
+    function dashboardUrlForRelease(release) {
+      var params = new URLSearchParams();
+      params.set('project', release.project);
+      params.set('release', release.name);
+      return '/?' + params.toString();
+    }
+
+    function renderTable(releases) {
+      var tbody = document.getElementById('tbody');
+      tbody.innerHTML = releases.map(function(release) {
+        var nameHtml = '<a href="' + escapeHtml(dashboardUrlForRelease(release)) + '">' + escapeHtml(release.name) + '</a>';
+        return '<tr>'
+          + '<td><span class="project-badge">' + escapeHtml(release.project) + '</span></td>'
+          + '<td class="release-name">' + nameHtml + '</td>'
+          + '<td>' + escapeHtml(formatReleaseDate(release.release_date)) + '</td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    function getReleaseFilterState() {
+      return {
+        project: document.getElementById('filterProject').value,
+        dateFrom: document.getElementById('filterDateFrom').value,
+        dateTo: document.getElementById('filterDateTo').value,
+      };
+    }
+
+    function restoreReleaseFilterState(state) {
+      if (!state) return;
+      document.getElementById('filterProject').value = state.project || '';
+      document.getElementById('filterDateFrom').value = state.dateFrom || '';
+      document.getElementById('filterDateTo').value = state.dateTo || '';
+    }
+
+    function loadReleases() {
+      var savedFilters = initialReleasesLoadDone ? getReleaseFilterState() : null;
+      var loading = document.getElementById('loading');
+      var error = document.getElementById('error');
+      var card = document.getElementById('card');
+      var empty = document.getElementById('empty');
+      var count = document.getElementById('count');
+
+      loading.style.display = 'block';
+      error.style.display = 'none';
+      card.style.display = 'none';
+      empty.style.display = 'none';
+      count.textContent = '';
+
+      fetch('/api/releases')
+        .then(function(response) { return response.json().then(function(data) { return { ok: response.ok, data: data }; }); })
+        .then(function(result) {
+          loading.style.display = 'none';
+          if (!result.ok || result.data.error) {
+            error.textContent = result.data.error || 'Failed to load releases.';
+            error.style.display = 'block';
+            return;
+          }
+          allReleases = result.data.releases || [];
+          if (savedFilters) restoreReleaseFilterState(savedFilters);
+          initialReleasesLoadDone = true;
+          if (!allReleases.length) {
+            count.textContent = '0 unreleased';
+            empty.textContent = 'No unreleased versions found in IDA or RDAR.';
+            empty.style.display = 'block';
+            return;
+          }
+          updateView();
+        })
+        .catch(function(err) {
+          loading.style.display = 'none';
+          error.textContent = 'Failed to load releases: ' + err.message;
+          error.style.display = 'block';
+        });
+    }
+
+    document.getElementById('filterProject').onchange = updateView;
+    document.getElementById('filterDateFrom').onchange = updateView;
+    document.getElementById('filterDateTo').onchange = updateView;
+
+    loadReleases();
+  </script>
+</body>
+</html>

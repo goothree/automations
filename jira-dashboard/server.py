@@ -11,25 +11,34 @@ DASHBOARD_DIR = Path(__file__).resolve().parent
 if str(DASHBOARD_DIR) not in sys.path:
     sys.path.insert(0, str(DASHBOARD_DIR))
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, make_response
 from flask_cors import CORS
 
-from jira_client import fetch_issues, get_issue_full, get_issue_transitions, set_issue_transition
-from config import is_configured, is_jira_to_testpad_configured
-from jira_to_testpad import run as run_jira_to_testpad
+from jira_client import (
+    fetch_issues,
+    fetch_unreleased_releases,
+    get_issue_full,
+    get_issue_transitions,
+    set_issue_transition,
+)
+from config import is_configured
 STATIC_DIR = DASHBOARD_DIR / "static"
 
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 CORS(app)
 
 
+def _html_response(filename):
+    response = make_response(send_from_directory(STATIC_DIR, filename))
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
 @app.route("/api/status")
 def status():
-    """Return whether Jira and Jira→Testpad are configured."""
-    return jsonify({
-        "configured": is_configured(),
-        "jira_to_testpad_configured": is_jira_to_testpad_configured(),
-    })
+    """Return whether Jira is configured."""
+    return jsonify({"configured": is_configured()})
 
 
 @app.route("/api/issues")
@@ -78,28 +87,27 @@ def issue_do_transition(issue_key):
     return jsonify(result)
 
 
-@app.route("/api/jira-to-testpad", methods=["POST"])
-def jira_to_testpad():
-    """Create Testpad script from selected Jira issue and set Test Script field."""
-    if not is_jira_to_testpad_configured():
-        return jsonify({"success": False, "error": "Jira→Testpad not configured. Set JIRA_TEST_SCRIPT_FIELD_ID, Testpad, and OPENAI_API_KEY in .env"}), 400
-    data = request.get_json() or {}
-    issue_key = (data.get("issue_key") or "").strip()
-    if not issue_key:
-        return jsonify({"success": False, "error": "issue_key is required"}), 400
-    result = run_jira_to_testpad(issue_key)
-    if result.get("success"):
-        return jsonify(result)
-    return jsonify(result), 500
+@app.route("/api/releases")
+def releases():
+    """Return unreleased versions from IDA and RDAR, newest release date first."""
+    result = fetch_unreleased_releases()
+    if "error" in result:
+        print("Jira releases API error:", result["error"], file=sys.stderr)
+        return jsonify(result), 500
+    return jsonify(result)
+
+
+@app.route("/releases")
+def releases_page():
+    return _html_response("releases.html")
 
 
 @app.route("/")
 def index():
-    return send_from_directory(STATIC_DIR, "index.html")
+    return _html_response("index.html")
 
 
 if __name__ == "__main__":
-    os.chdir(DASHBOARD_DIR)
     port = int(os.environ.get("PORT", 5557))
     print(f"Jira Team Dashboard: http://127.0.0.1:{port}")
-    app.run(host="127.0.0.1", port=port, debug=True)
+    app.run(host="127.0.0.1", port=port, debug=True, use_reloader=False)
