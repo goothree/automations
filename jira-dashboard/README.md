@@ -74,12 +74,10 @@ JIRA_TEAM_JQL=assignee in (alice, bob) AND resolution = Unresolved ORDER BY dued
 
 ## Test plan delivery
 
-See **[docs/test-plan-workflow.md](../docs/test-plan-workflow.md)** for the full Jira → Word → Testpad → SharePoint workflow.
+See **[docs/test-plan-workflow.md](../docs/test-plan-workflow.md)** for team setup (Cursor-only).
 
-Quick deliver after a test plan `.md` or `.docx` exists in `reports/`:
+Teammates ask in Cursor chat:
 
-```bash
-.venv/bin/python scripts/deliver_test_plan.py IDA-XXXX
-```
+> Review and create test plan for https://careai.atlassian.net/browse/IDA-XXXX
 
 SharePoint sync folder (hardcoded default): `/Users/michael.guthrie/Library/CloudStorage/OneDrive-Stryker/TestPlans`

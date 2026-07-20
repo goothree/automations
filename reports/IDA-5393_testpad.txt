@@ -1,0 +1,64 @@
+IDA-5393 — VM* User able to add notes before device is added to session
+Environment: https://lab.care.ai (VM* enabled)
+Prerequisites: VM* access, two sitter accounts, roaming-device room with patient assignment workflow
+
+TC-01: Notes blocked before device is assigned (P1) [AC-1, AC-3]
+	Open test room in VM* and start session without assigning roaming device
+	Confirm session active but no device connected
+	Attempt to open or interact with notes section
+	Confirm notes are disabled/unclickable OR error shown on attempt to type/save
+	Attempt to type/save via click, keyboard, or paste — confirm no note saved
+	Confirm notes list remains empty; no console errors
+
+TC-02: Notes blocked before patient is assigned (P1) [AC-2, AC-3]
+	Assign roaming device to session (device connected)
+	Do NOT assign patient yet
+	Attempt to open or interact with notes section
+	Confirm notes remain disabled/unclickable or show error
+	Attempt to type/save — confirm no note saved
+
+TC-03: Blocked-state UX matches design (P1) [AC-3]
+	Compare blocked notes UI to dev/Nadire recordings on ticket
+	Confirm disabled state or error messaging is clear (not a broken UI)
+	Confirm sitter understands why notes are unavailable (device/patient not assigned)
+
+TC-04: Notes enabled after device and patient are assigned (P1) [AC-4]
+	Assign roaming device then assign patient to session
+	Open notes and add a note (e.g. "Sitter 1 note — [timestamp]")
+	Confirm note saves and appears in notes list
+	Add a second note — confirm both notes visible
+
+TC-05: Second sitter sees first sitter's notes (P1) [AC-5]
+	User 2 joins same room (device and patient already assigned)
+	Open notes — confirm User 1's notes are visible
+	User 2 adds a new note — confirm User 1 can see it on their screen
+
+TC-06: Notes persist across sitter handoff — leave and re-join (P1) [AC-6]
+	User 1 leaves session after adding notes
+	User 2 joins same room — confirms User 1's prior notes visible
+	User 2 adds handoff notes
+	User 1 re-joins — confirms all notes (User 1 + User 2) in single consolidated view
+
+TC-07: Pre-device/patient notes cannot be created via workaround (P1) [AC-1, AC-2]
+	Start session without device and without patient — try all paths to add notes; confirm none saved
+	Assign device only (no patient) — retry notes; confirm still blocked
+	Assign patient — add one note; confirm only post-assignment notes exist
+	User 2 confirms same single note set (no split records)
+
+TC-08: Device and patient assigned at session start — notes work immediately (P2) [AC-4]
+	Start session and assign device and patient immediately
+	Confirm notes section enabled; add and save a note
+	User 2 joins and confirms note visibility
+
+TC-09: Regression — VM* session and assignment flow unaffected (P1)
+	Complete standard workflow: open room → assign device → assign patient → monitor video
+	End session and start new session on different room
+	Confirm notes blocked again until device+patient assigned on new session
+
+TC-10: Ticket QA smoke — end-to-end (P1)
+	Session without device → notes blocked
+	Device assigned, no patient → notes still blocked
+	Device + patient assigned → notes enabled; Sitter 1 adds notes
+	Sitter 2 sees and adds notes
+	Sitter 1 leaves → Sitter 2 adds notes → Sitter 1 re-joins and sees all notes
+	No split or missing notes across sitters

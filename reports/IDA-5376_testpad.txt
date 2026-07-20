@@ -1,0 +1,72 @@
+IDA-5376 — VM* retry 401s in-session instead of exiting the monitoring wall
+Environment: https://lab.care.ai (VM and VM* enabled)
+Prerequisites: VM access, mic permission, 2+ online rooms, DevTools open, token simulation method chosen (Auth0 clear / revoke / block API / Requestly 401)
+
+TC-01: 401 during beta monitoring wall does not navigate to /error (P1) [AC-1]
+	Navigate to Virtual Monitoring and open the beta monitoring wall with 2+ live room tiles
+	Confirm monitoring wall visible with playing video on each tile
+	Let streams stabilize 30–60s; note URL and video count
+	Trigger REST API 401 mid-session (token clear, revoke, block API, or Requestly 401 rule)
+	Confirm 401 responses in Network tab
+	Observe for at least 2 minutes without navigating away
+	Confirm app does NOT navigate to /error; URL unchanged
+	Confirm wall and all tiles remain visible; video keeps playing
+
+TC-02: 401 during non-beta monitoring wall does not navigate to /error (P1) [AC-1]
+	Open standard (non-beta) Virtual Monitoring wall with 2+ live room tiles
+	Trigger token invalidation mid-session (same method as TC-01)
+	Confirm 401s in Network tab; observe for at least 2 minutes
+	Confirm no navigation to /error; wall and streams remain
+
+TC-03: Reconnecting toast appears during degraded auth (P1) [AC-3]
+	After 401 triggered, confirm non-blocking toast appears
+	Confirm toast text: "Reconnecting your session — monitoring continues"
+	Confirm toast does not block video tiles or cover monitoring UI
+	Confirm wall remains usable for viewing (non-modal)
+	(Optional) Confirm toasts are throttled on repeated 401s — no rapid flood
+
+TC-04: Background token recovery restores REST and clears toast (P1) [AC-2]
+	Restore valid session without leaving monitoring wall
+	Confirm background token refresh attempts in Network tab
+	Confirm reconnecting toast clears automatically after recovery
+	Trigger REST action requiring auth (refresh room list, PTZ, etc.)
+	Confirm API returns 200 and action succeeds
+	Confirm video never stopped during recovery
+
+TC-05: Controls degrade gracefully while auth is degraded (P1) [AC-3]
+	Attempt REST-dependent controls (add/remove room, refresh lists, settings)
+	Confirm controls disabled, show error, or fail gracefully — wall does not crash
+	Attempt local/stream controls (view tile, PTZ if stream-local)
+	Confirm stream viewing continues; no fatal console errors or navigation
+
+TC-06: 401 outside monitoring wall still routes to /error (P1) [AC-4]
+	Navigate to non-monitoring page (Command Center, dashboard, settings)
+	Invalidate token; trigger API calls; allow refresh retries to exhaust
+	Confirm app navigates to /error after terminal 401
+	Confirm standard error page displays
+
+TC-07: Popout and nested monitoring windows keep active state (P1) [AC-5]
+	Open monitoring wall in main window with live streams
+	Open second wall via popout or nested window (if supported)
+	Invalidate token while both walls open — neither navigates to /error
+	Close one wall — remaining wall still protected
+	Close all walls; trigger terminal 401 — confirms /error when no wall active
+
+TC-08: Background retry uses capped backoff (P2)
+	With wall open and token invalidated, observe Network tab for 3+ minutes
+	Confirm token refresh retries use increasing delay (capped backoff)
+
+TC-09: Exit monitoring wall during degraded state (P2)
+	Close monitoring wall while toast visible and token invalid
+	Confirm wall closes cleanly
+	On non-monitoring page, trigger 401 — confirm standard /error navigation
+
+TC-10: Re-enter monitoring after recovery (P2)
+	After token recovered, leave and re-enter Virtual Monitoring wall
+	Confirm no stale toast; add rooms; streams and API calls work
+
+TC-11: Ticket QA — mid-session token revoke (P1)
+	Start monitoring with 2+ live streams
+	Revoke or clear token mid-session
+	Confirm video continues 60+ seconds and reconnecting toast appears
+	Restore token; confirm toast clears and API calls succeed

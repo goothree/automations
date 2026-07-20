@@ -1,0 +1,61 @@
+IDA-5296 — Identity Activities Pubsub Error Fixes (Phase 1)
+Environment: Lab Identity Manager
+Prerequisites: IM access, identities with/without face images, API access, 90s timeout baseline
+
+TC-01: Face image happy path — API (P1) [AC-1]
+	Send GET /tenants/{tenant}/identities/{identityId}/faces/{faceId} for identity with valid face
+	Confirm HTTP 200, Content-Type image/jpg, response body is face image
+	Confirm request completes quickly (well under 90s)
+
+TC-02: Face image happy path — web dashboard (P1) [AC-7]
+	Open Identity Manager and navigate to identity profile with face image
+	Confirm profile loads and face image is displayed
+	Confirm no loading or performance issues; Network shows face API 200
+
+TC-03: Invalid or missing faceId — clean error (P1) [AC-4]
+	Request face image with non-existent or invalid faceId
+	Confirm clean error response (not 200); request does not hang
+	Confirm fails promptly (not 90s or 600s wait)
+	Verify stream error logged once if logs accessible
+
+TC-04: Slow/hanging GCS read — fails fast at timeout (P1) [AC-2]
+	Trigger slow GCS read (coordinate with dev)
+	Confirm request fails at ~90s (or configured FACE_IMAGE_READ_TIMEOUT_MS), not ~600s
+	Confirm timeout error message (e.g. "Face image read timed out")
+	Confirm subsequent happy-path requests still work
+
+TC-05: Configurable timeout env — valid value (P2) [AC-2, AC-3]
+	With FACE_IMAGE_READ_TIMEOUT_MS set to test value, trigger slow read
+	Confirm timeout at configured value
+	Restore default; confirm 90s behavior returns
+
+TC-06: Invalid timeout env — falls back to 90s default (P2) [AC-3]
+	With invalid/unset FACE_IMAGE_READ_TIMEOUT_MS, request valid face image
+	Confirm 200 success — no immediate-fire timeout
+	With invalid env, slow read still times out at ~90s default
+
+TC-07: Repeated face-image requests — stability (P1) [AC-6]
+	Perform 10+ requests alternating valid face (200) and invalid faceId (error)
+	Confirm all complete; no hanging requests
+	Confirm no progressive latency increase
+	Reload profile in web dashboard — face image still loads
+
+TC-08: recordIdentityActivity — report update failure still returns 200 (P1) [AC-5]
+	Trigger identity activity event (scan, status change, profile update)
+	Confirm activity recorded in Activity tab
+	If report update failure simulated — confirm API returns 200/done, activity saved, no Pub/Sub retry
+
+TC-09: Identity activity recording — normal path (P1) [AC-5]
+	Trigger identity activity under normal conditions
+	Confirm activity recorded; report updated if applicable
+	Confirm no 500 errors in Network or Console
+
+TC-10: Regression — Identity Manager general functionality (P1)
+	Navigate core IM screens: search, list, profile, right panel
+	Edit fields, view permissions, load preferences
+	Confirm standard operations work without new errors
+
+TC-11: Ticket QA smoke — end-to-end (P1)
+	Valid face API 200 + fast; dashboard face displayed
+	Invalid faceId clean error; repeated requests stable
+	Identity activity recorded; no service degradation
