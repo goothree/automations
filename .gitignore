@@ -16,4 +16,6 @@ drivers/msedgedriver
 
 # Local env and IDE
 .env
-.cursor/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**

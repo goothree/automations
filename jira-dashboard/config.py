@@ -40,6 +40,24 @@ TESTPAD_SCRIPT_URL_TEMPLATE = (os.environ.get("TESTPAD_SCRIPT_URL_TEMPLATE") or 
 OPENAI_API_KEY = (os.environ.get("OPENAI_API_KEY") or "").strip()
 OPENAI_MODEL = (os.environ.get("OPENAI_MODEL") or "gpt-4o-mini").strip()
 
+# SharePoint test plan delivery (OneDrive-synced folder shared with QA team)
+TEST_PLAN_SHAREPOINT_FOLDER_URL = (
+    os.environ.get("TEST_PLAN_SHAREPOINT_FOLDER_URL")
+    or "https://stryker-my.sharepoint.com/:f:/p/michael_guthrie/"
+    "IgBAyEORHosITrKk3lSVFca_AePm9AG_nzqGIQvVf7EbPk0"
+).strip()
+TEST_PLAN_ONEDRIVE_SYNC_DIR = (
+    os.environ.get("TEST_PLAN_ONEDRIVE_SYNC_DIR")
+    or "/Users/michael.guthrie/Library/CloudStorage/OneDrive-Stryker/TestPlans"
+).strip()
+TEST_PLAN_SHAREPOINT_SITE_BASE = (
+    os.environ.get("TEST_PLAN_SHAREPOINT_SITE_BASE")
+    or "https://stryker-my.sharepoint.com/personal/michael_guthrie_stryker_com"
+).rstrip("/")
+TEST_PLAN_SHAREPOINT_FOLDER_PATH = (
+    os.environ.get("TEST_PLAN_SHAREPOINT_FOLDER_PATH") or "Documents/TestPlans"
+).strip("/")
+
 
 def is_configured():
     return bool(JIRA_URL and JIRA_EMAIL and JIRA_API_TOKEN)

@@ -1,0 +1,82 @@
+---
+description: Deliver test plans to SharePoint and link them in the Jira ticket comment
+alwaysApply: true
+---
+
+# Test Plan Delivery — SharePoint + Jira
+
+When the user asks to create a test plan for a Jira ticket:
+
+1. Fetch ticket details from Jira and generate the test plan as a `.docx` file (user typically wants only the Word doc, not markdown).
+2. Save locally under `reports/` as `reports/IDA-XXXX_test_plan.docx`.
+3. **Generate a Testpad script text file** from the test cases:
+
+   - Save as `reports/IDA-XXXX_testpad.txt`
+   - Use **tab-indented format** for Testpad paste:
+     - Top-level lines = test case titles (`TC-01: ...`)
+     - Tab-indented lines = steps under each test case
+   - Include a short header (ticket, summary, environment, key prerequisites)
+   - Prefer generating from the markdown before deleting it:
+
+   ```bash
+   .venv/bin/python scripts/test_plan_to_testpad.py reports/IDA-XXXX_test_plan.md reports/IDA-XXXX_testpad.txt
+   ```
+
+   Prefer the deliver script (uses hardcoded SharePoint sync path from config):
+
+   ```bash
+   .venv/bin/python scripts/deliver_test_plan.py IDA-XXXX
+   ```
+
+   Or copy manually to the OneDrive sync folder:
+
+   - **SharePoint folder:** https://stryker-my.sharepoint.com/:f:/p/michael_guthrie/IgBAyEORHosITrKk3lSVFca_AePm9AG_nzqGIQvVf7EbPk0
+   - **Local sync path:** `/Users/michael.guthrie/Library/CloudStorage/OneDrive-Stryker/TestPlans`
+
+   ```bash
+   cp reports/IDA-XXXX_test_plan.docx "/Users/michael.guthrie/Library/CloudStorage/OneDrive-Stryker/TestPlans/"
+   cp reports/IDA-XXXX_testpad.txt "/Users/michael.guthrie/Library/CloudStorage/OneDrive-Stryker/TestPlans/"
+   ```
+
+   OneDrive sync uploads to SharePoint automatically. Do not skip either file.
+
+5. **Add a Jira comment** on the same ticket with a link to the test plan:
+
+   ```bash
+   cd jira-dashboard && ../.venv/bin/python -c "
+   from jira_client import add_test_plan_jira_comment
+   import json
+   print(json.dumps(add_test_plan_jira_comment('IDA-XXXX', 'IDA-XXXX_test_plan.docx'), indent=2))
+   "
+   ```
+
+   Uses `jira_client.add_test_plan_jira_comment()` — posts a Jira comment with a clickable link to the test plan file only (no folder link). The link must open the document in **SharePoint / Word Online for editing** (`?web=1`), not trigger a local download. Optional per-file override: `TestPlans/_sharepoint_links.json`.
+
+6. Confirm in the response:
+   - Test plan `.docx` link
+   - Testpad `.txt` path (local + SharePoint)
+   - Jira comment posted (or error if Jira auth failed)
+
+Do not skip the Testpad text file, SharePoint copy, or Jira comment steps.
+
+## API / auth failure simulation — Requestly (when useful)
+
+When a test plan involves simulating HTTP errors, auth failures, timeouts, or API unavailability (e.g. 401, 403, 500, network errors), include **Requestly** as a recommended option in prerequisites (typically a **Failure simulation** or **Token simulation** section).
+
+**Method E — Requestly Chrome extension** (include whenever applicable):
+
+| Method | How |
+|--------|-----|
+| **E** | Requestly — install from Chrome Web Store; create a **Modify Response** or **Mock API** rule matching the relevant API URLs; set status code (401, 500, etc.); enable mid-test; disable to simulate recovery. |
+
+**Requestly setup steps** (include in the test plan when Method E is listed):
+
+1. Install [Requestly](https://chromewebstore.google.com/detail/requestly/mdnleldcmiljblolnjhpnblkcekpdkpa) from the Chrome Web Store.
+2. Open Requestly → Create rule → **Modify Response** (or **Mock API**).
+3. Match the API URLs under test (e.g. filter: **URL Contains** `/api/` or the lab API host).
+4. Set the desired response status code (401, 403, 500, timeout, etc.).
+5. Save and enable the rule only when ready to test; **disable** it to allow recovery / retry scenarios.
+
+Also mention Requestly in relevant test-case steps (e.g. "enable Requestly 401 rule" / "disable rule to restore API") and in sign-off (Method A / B / C / D / **E**).
+
+**When to include:** auth/token refresh (401), permission errors (403), server errors (500), call failures, network timeouts, and any ticket where DevTools offline/block is already listed as an option.

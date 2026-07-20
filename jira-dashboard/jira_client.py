@@ -2,6 +2,10 @@
 Jira client: fetch issues for the team dashboard.
 Uses atlassian-python-api; auth via JIRA_EMAIL + JIRA_API_TOKEN (Jira Cloud).
 """
+import json
+from pathlib import Path
+from urllib.parse import quote
+
 from config import (
     JIRA_URL,
     JIRA_EMAIL,
@@ -11,6 +15,10 @@ from config import (
     JIRA_TEST_SCRIPT_FIELD_ID,
     JIRA_AC_FIELD_ID,
     JIRA_APPROVERS_FIELD_ID,
+    TEST_PLAN_SHAREPOINT_FOLDER_URL,
+    TEST_PLAN_ONEDRIVE_SYNC_DIR,
+    TEST_PLAN_SHAREPOINT_SITE_BASE,
+    TEST_PLAN_SHAREPOINT_FOLDER_PATH,
     is_configured,
 )
 
@@ -97,7 +105,20 @@ def _extract_approver_names(fields):
     return ", ".join(names)
 
 
-def fetch_issues(max_results=100):
+def _fetch_jql_issues(client, jql, fields, max_results=None):
+    """Fetch issues for a JQL query, paginating through Jira Cloud results."""
+    if hasattr(client, "enhanced_jql_get_list_of_tickets"):
+        return client.enhanced_jql_get_list_of_tickets(
+            jql=jql,
+            fields=fields,
+            limit=max_results,
+        )
+
+    result = client.jql(jql, limit=max_results or 100, fields=fields)
+    return result.get("issues") or []
+
+
+def fetch_issues(max_results=None):
     """
     Fetch issues from Jira for the dashboard.
     Returns list of dicts with: key, summary, status, approvers, priority, due_date, link, type.
@@ -116,14 +137,21 @@ def fetch_issues(max_results=100):
     if JIRA_TEST_SCRIPT_FIELD_ID:
         fields_request += "," + JIRA_TEST_SCRIPT_FIELD_ID
     try:
-        result = client.jql(jql, limit=max_results, fields=fields_request)
+        raw_issues = _fetch_jql_issues(client, jql, fields_request, max_results=max_results)
     except Exception as e:
         err_msg = _error_message(e)
         return {"error": err_msg, "using_team_jql": bool(JIRA_TEAM_JQL and JIRA_TEAM_JQL.strip())}
 
+    total = len(raw_issues)
+    try:
+        count_result = client.approximate_issue_count(jql)
+        if isinstance(count_result, dict) and count_result.get("count") is not None:
+            total = int(count_result["count"])
+    except Exception:
+        pass
+
     version_release_dates = _fetch_version_release_dates(client)
 
-    raw_issues = result.get("issues") or []
     out = []
     base_url = JIRA_URL.rstrip("/") + "/browse/"
 
@@ -153,7 +181,8 @@ def fetch_issues(max_results=100):
         })
     return {
         "issues": out,
-        "total": result.get("total", len(out)),
+        "total": total,
+        "fetched": len(out),
         "using_team_jql": bool(JIRA_TEAM_JQL and JIRA_TEAM_JQL.strip()),
         "jql_length": len(jql),
         "version_release_dates": version_release_dates,
@@ -249,17 +278,34 @@ def _description_to_plain(node):
     return "".join(parts)
 
 
-TEST_PLAN_SHAREPOINT_FOLDER_URL = (
-    "https://stryker-my.sharepoint.com/:f:/p/michael_guthrie/"
-    "IgBAyEORHosITrKk3lSVFca_AQejQg6tiR1NqeMAgmke7Tg?e=qJ5lz7"
-)
-TEST_PLAN_ONEDRIVE_SYNC_DIR = (
-    "/Users/michael.guthrie/Library/CloudStorage/OneDrive-Stryker/TestPlans"
-)
-TEST_PLAN_SHAREPOINT_FILE_URL_TEMPLATE = (
-    "https://stryker-my.sharepoint.com/personal/michael_guthrie_stryker_com/"
-    "Documents/TestPlans/{filename}"
-)
+def _sharepoint_links_manifest_path():
+    return Path(TEST_PLAN_ONEDRIVE_SYNC_DIR) / "_sharepoint_links.json"
+
+
+def test_plan_sharepoint_file_url(filename):
+    """
+    Return a SharePoint URL that opens the file in Word Online for editing
+    (not a local download). Uses per-file sharing link from manifest if present,
+    otherwise builds a direct path URL with ?web=1.
+    """
+    filename = (filename or "").strip()
+    if not filename:
+        return ""
+
+    manifest = _sharepoint_links_manifest_path()
+    if manifest.exists():
+        try:
+            links = json.loads(manifest.read_text(encoding="utf-8"))
+            if isinstance(links, dict) and links.get(filename):
+                return links[filename].strip()
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    encoded = quote(filename, safe="")
+    return (
+        f"{TEST_PLAN_SHAREPOINT_SITE_BASE}/"
+        f"{TEST_PLAN_SHAREPOINT_FOLDER_PATH}/{encoded}?web=1"
+    )
 
 
 def _adf_doc(*paragraphs):
@@ -302,10 +348,6 @@ def add_issue_comment(issue_key, body):
         return {"success": True, "comment_id": comment_id}
     except Exception as e:
         return {"error": _error_message(e)}
-
-
-def test_plan_sharepoint_file_url(filename):
-    return TEST_PLAN_SHAREPOINT_FILE_URL_TEMPLATE.format(filename=filename)
 
 
 def add_test_plan_jira_comment(issue_key, filename):

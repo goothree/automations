@@ -71,3 +71,15 @@ JIRA_TEAM_JQL=assignee in (alice, bob) AND resolution = Unresolved ORDER BY dued
 
 - **GET /api/status** – Returns `{ "configured": true/false }`.
 - **GET /api/issues** – Returns `{ "issues": [...], "total": N }`. Each issue has `key`, `summary`, `status`, `assignee`, `priority`, `due_date`, `type`, `link`.
+
+## Test plan delivery
+
+See **[docs/test-plan-workflow.md](../docs/test-plan-workflow.md)** for the full Jira → Word → Testpad → SharePoint workflow.
+
+Quick deliver after a test plan `.md` or `.docx` exists in `reports/`:
+
+```bash
+.venv/bin/python scripts/deliver_test_plan.py IDA-XXXX
+```
+
+SharePoint sync folder (hardcoded default): `/Users/michael.guthrie/Library/CloudStorage/OneDrive-Stryker/TestPlans`
