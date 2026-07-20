@@ -19,3 +19,6 @@ ida5376_facility = os.getenv("IDA5376_FACILITY", "Vineland Rack Room")
 ida5376_min_rooms = int(os.getenv("IDA5376_MIN_ROOMS", "2"))
 ida5376_vm_path = os.getenv("IDA5376_VM_PATH", "/virtual-monitoring")
 ida5376_beta_vm_path = os.getenv("IDA5376_BETA_VM_PATH", "")
+
+# Virtual Care navigation test
+vc_path = os.getenv("VC_PATH", "/virtual-care")

@@ -404,6 +404,7 @@
         <select id="filterRelease">
           <option value="">All</option>
         </select>
+        <button type="button" class="secondary" id="btnClearFilters" onclick="clearFilters()">Clear filters</button>
       </div>
       <span class="count" id="count"></span>
       <span class="count" id="jqlHint" style="display: none; margin-left: 0.5rem; color: var(--accent);" title="JQL from JIRA_TEAM_JQL in .env">Custom JQL</span>
@@ -469,6 +470,7 @@
 
   <script>
     let allIssues = [];
+    let issueTotal = 0;
     let versionReleaseDates = {};
     let selectedIssueKey = null;
     let sortBy = 'key';
@@ -669,6 +671,14 @@
           document.getElementById(selectId).value = '';
         }
       });
+    }
+
+    function clearFilters() {
+      restoreFilterState({ project: '', approver: '', status: '', release: '' });
+      if (window.location.search) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+      renderTable();
     }
 
     function escapeHtml(s) {
@@ -971,7 +981,12 @@
 
     function renderTable() {
       var issues = sortIssues(getFilteredIssues());
-      document.getElementById('count').textContent = `${issues.length} issue${issues.length !== 1 ? 's' : ''}`;
+      var filteredCount = issues.length;
+      var countText = filteredCount + ' issue' + (filteredCount !== 1 ? 's' : '');
+      if (issueTotal && allIssues.length < issueTotal) {
+        countText += ' (loaded ' + allIssues.length + ' of ' + issueTotal + ' from Jira)';
+      }
+      document.getElementById('count').textContent = countText;
       const tbody = document.getElementById('tbody');
       if (!issues.length) {
         document.getElementById('card').style.display = 'none';
@@ -1056,6 +1071,7 @@
           return;
         }
         allIssues = data.issues || [];
+        issueTotal = data.total || allIssues.length;
         versionReleaseDates = data.version_release_dates || {};
         const hint = document.getElementById('jqlHint');
         if (hint) hint.style.display = data.using_team_jql ? 'inline' : 'none';

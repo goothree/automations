@@ -44,7 +44,7 @@ def status():
 @app.route("/api/issues")
 def issues():
     """Return issues from Jira (team / project / default JQL)."""
-    result = fetch_issues(max_results=200)
+    result = fetch_issues()
     if "error" in result:
         # Log so it appears in terminal when running the server
         print("Jira API error:", result["error"], file=sys.stderr)

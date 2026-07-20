@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Run the Virtual Care test (login + open VC from overflow menu).
+# Creates screenshots/<timestamp>/ and writes pytest output to run_vc.log there.
+set -eo pipefail
+cd "$(dirname "$0")"
+RUN_DIR="$(pwd)/screenshots/$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$RUN_DIR"
+export VC_SCREENSHOT_RUN_DIR="$RUN_DIR"
+LOG_FILE="$RUN_DIR/run_vc.log"
+
+if [[ -x .venv/bin/pytest ]]; then
+  .venv/bin/pytest src/tests/virtual_care.py::test_vc -v "$@" 2>&1 | tee "$LOG_FILE"
+else
+  pytest src/tests/virtual_care.py::test_vc -v "$@" 2>&1 | tee "$LOG_FILE"
+fi
