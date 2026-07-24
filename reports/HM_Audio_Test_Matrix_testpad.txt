@@ -1,0 +1,41 @@
+HM — Rating scale:
+Prerequisites: PRE-01: Device and firmware (P1); PRE-02: Test room and placement (P1); PRE-03: Participants and roles (P1); PRE-04: Accounts and access (P1)
+
+TC-01: Firmware 1.1.24.4 — Minimum gain — VC / VM / VM* (P1)
+	VC: set mic gain to minimum.
+	Capture clip `1.1.24.4_min_VC` per recording protocol.
+	VM: capture `1.1.24.4_min_VM` (gain unchanged).
+	VM*: capture **`1.1.24.4_min_VM*`**.
+
+TC-02: Firmware 1.1.24.4 — Medium gain — VC / VM / VM* (P1)
+	VC: set mic gain to medium.
+	Capture `1.1.24.4_med_VC`, `1.1.24.4_med_VM`, **`1.1.24.4_med_VM*`**.
+
+TC-03: Firmware 1.1.24.4 — High gain — VC / VM / VM* (P1)
+	VC: set mic gain to high.
+	Capture `1.1.24.4_high_VC`, `1.1.24.4_high_VM`, **`1.1.24.4_high_VM*`**.
+
+TC-04: Firmware 1.1.27 — Minimum gain — VC / VM / VM* (P1)
+	Repeat TC-01 steps with 1.1.27 clip names (`1.1.27_min_VC`, etc.).
+
+TC-05: Firmware 1.1.27 — Medium gain — VC / VM / VM* (P1)
+	Repeat TC-02 steps on firmware 1.1.27.
+
+TC-06: Firmware 1.1.27 — High gain — VC / VM / VM* (P1)
+	Repeat TC-03 steps on firmware 1.1.27.
+
+TC-07: VM / VM* inherit VC mic gain (P1)
+	Note mic gain in VC.
+	Enter VM without changing gain — confirm level matches VC.
+	Enter VM* similarly.
+	Repeat for medium and high passes.
+
+TC-08: Cross-firmware comparison — VC (P1)
+	Compare VC clips pairwise by gain level and distance (1.1.24.4 vs 1.1.27 @ min/med/high, 3 m / 2 m).
+
+TC-09: Cross-firmware comparison — VM and VM* (P1)
+	Compare VM and VM* clips: 1.1.24.4 vs 1.1.27 at each gain level.
+	Note whether differences match VC or diverge.
+
+TC-10: Double talk and back-and-forth quality (P2)
+	For each firmware, mode, and gain level, rate double talk and back-and-forth segments at 3 m and 2 m (1–5 scale).

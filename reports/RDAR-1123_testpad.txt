@@ -1,0 +1,53 @@
+RDAR-1123 — Epic MCB - Certificates deployment
+Prerequisites: PRE-01: Build and device (P1); PRE-02: Test certificate (P1); PRE-03: MQTT access (P1); PRE-04: Device Settings access (P1)
+
+TC-01: MQTT cert-install — happy path (P1)
+	Confirm cert file exists at known path (e.g. `/sdcard/Documents/680f8d2f.0`).
+	Publish MQTT `cert-install` with matching `cert-path`.
+	Subscribe/read response on `adbdresponsetopic`.
+	Open Trusted credentials → cai (or documented store).
+
+TC-02: Invalid cert-path — missing file (P1)
+	Publish `cert-install` with `cert-path` pointing to a non-existent file.
+	Test data: e.g. `/sdcard/Documents/doesnotexist.0`
+	Read MQTT response on `adbdresponsetopic`.
+	Confirm Trusted credentials unchanged (no partial install).
+
+TC-03: Invalid cert-path — malformed filename (P2)
+	Push a PEM file with non-standard name (e.g. `mycert.pem`) to device.
+	Send `cert-install` referencing that path.
+	Document actual behavior for MDM integration guidance.
+
+TC-04: Invalid destFolder / firmware mismatch (P2)
+	Attempt `cert-install` under conditions documented to produce destFolder error (out-of-date firmware scenario).
+	If not reproducible on current firmware, document N/A with firmware version tested.
+
+TC-05: Install failure — exception path (P2)
+	Place intentionally invalid PEM content at `${hash}.0` path (test device only).
+	Send `cert-install`.
+	Check IPM/device logs for exception detail.
+
+TC-06: Re-install / update same cert hash (P2)
+	Send `cert-install` again for the same `${hash}.0` path.
+	Confirm Trusted credentials still shows single valid entry for that cert.
+
+TC-07: Manual Settings install — regression baseline (P1)
+	Step A: View existing Trusted credentials list.
+	Step B: Download/push cert; Settings → Install a certificate → CA certificate → INSTALL ANYWAY; select file from Downloads.
+	Step C: Repeat Step A; confirm new cert in list.
+
+TC-08: VendorCertPinner cert path (P2)
+	Deploy `adb_vendor.p7b` to `/sdcard/careai/vendor/certs/`.
+	Launch or trigger `ai.care.vendorcertpinner` behavior per app design.
+	Coordinate full MDM push validation with IDA-5326 when MDM is ready.
+
+TC-09: Overlay / system CA service (P2)
+	On device shell (if available), run: `getprop | grep init.svc | grep cacerts`
+	Confirm certs from TC-01 are recognized per system-ca-autoinstall-runbook.md (dev verified).
+
+TC-10: End-to-end QA smoke (P1)
+	Valid `${hash}.0` on device → MQTT `cert-install` → `(apparent success)`.
+	Cert visible in Trusted credentials (cai).
+	Invalid path → `INVALID certPathValue`.
+	Manual Settings install still works (TC-07).
+	IPM v3.0.79 release build confirmed.

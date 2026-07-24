@@ -3,6 +3,7 @@ Jira client: fetch issues for the team dashboard.
 Uses atlassian-python-api; auth via JIRA_EMAIL + JIRA_API_TOKEN (Jira Cloud).
 """
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import quote
 
@@ -434,6 +435,82 @@ def set_issue_transition(issue_key, transition_id):
 
 RELEASE_PROJECTS = ("IDA", "RDAR")
 
+RELEASE_STATUS_QA = ("In QA", "In Testing")
+RELEASE_STATUS_IN_WORK = (
+    "Scheduled / In Progress",
+    "In Review",
+    "Ready for Development",
+    "Review Completed",
+    "Re Opened",
+    "Reopened",
+)
+RELEASE_STATUS_BACKLOG = ("Backlog", "Gathering Requirements")
+RELEASE_STATUS_BLOCKED = ("Blocked / On-Hold", "BLOCKED", "Blocked")
+
+RELEASE_COUNT_METRICS = (
+    ("total", None),
+    ("qa", RELEASE_STATUS_QA),
+    ("in_work", RELEASE_STATUS_IN_WORK),
+    ("backlog", RELEASE_STATUS_BACKLOG),
+    ("blocked", RELEASE_STATUS_BLOCKED),
+)
+
+
+def _jql_quote(value):
+    return '"' + str(value).replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _release_count(client, project_key, version_name, statuses=None):
+    """Return approximate Jira issue count for a project fix version and optional statuses."""
+    jql = f"project = {project_key} AND fixVersion = {_jql_quote(version_name)}"
+    if statuses:
+        status_list = ", ".join(_jql_quote(status) for status in statuses)
+        jql = f"{jql} AND status IN ({status_list})"
+    try:
+        result = client.approximate_issue_count(jql)
+        if isinstance(result, dict) and result.get("count") is not None:
+            return int(result["count"])
+    except Exception:
+        pass
+    return None
+
+
+def _attach_release_counts(client, releases):
+    """Add total/qa/in_work/backlog/blocked counts to each release."""
+    if not releases:
+        return releases
+
+    counts = {}
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = {
+            executor.submit(
+                _release_count,
+                client,
+                release["project"],
+                release["name"],
+                statuses,
+            ): (release["project"], release["name"], metric)
+            for release in releases
+            for metric, statuses in RELEASE_COUNT_METRICS
+        }
+        for future in as_completed(futures):
+            project_key, version_name, metric = futures[future]
+            try:
+                counts[(project_key, version_name, metric)] = future.result()
+            except Exception:
+                counts[(project_key, version_name, metric)] = None
+
+    for release in releases:
+        key_base = (release["project"], release["name"])
+        release["total"] = counts.get((*key_base, "total"))
+        release["qa"] = counts.get((*key_base, "qa"))
+        release["in_work"] = counts.get((*key_base, "in_work"))
+        release["backlog"] = counts.get((*key_base, "backlog"))
+        release["blocked"] = counts.get((*key_base, "blocked"))
+        # Backwards compatibility for any callers still using issue_count.
+        release["issue_count"] = release["total"]
+    return releases
+
 
 def _fetch_version_release_dates(client):
     """Map project-prefixed version key (e.g. IDA-v2026-07) to release date."""
@@ -487,6 +564,8 @@ def fetch_unreleased_releases():
                 "link": link,
             })
 
+    _attach_release_counts(client, releases)
+
     releases.sort(
         key=lambda release: (
             release["release_date"] or "",
@@ -494,4 +573,47 @@ def fetch_unreleased_releases():
         ),
         reverse=True,
     )
+    return {"releases": releases, "total": len(releases)}
+
+
+def fetch_calendar_releases():
+    """
+    Fetch non-archived IDA and RDAR versions with a release date for the calendar.
+    Includes both released and unreleased versions.
+    """
+    client = _get_client()
+    if not client:
+        return {"error": "Jira not configured. Set JIRA_URL, JIRA_EMAIL, JIRA_API_TOKEN in .env"}
+
+    releases = []
+    base_url = JIRA_URL.rstrip("/")
+
+    for project_key in RELEASE_PROJECTS:
+        try:
+            versions = client.get_project_versions(project_key) or []
+        except Exception as e:
+            return {"error": _error_message(e)}
+
+        for version in versions:
+            if not isinstance(version, dict):
+                continue
+            if version.get("archived"):
+                continue
+            release_date = (version.get("releaseDate") or "").strip()
+            if not release_date:
+                continue
+            version_id = version.get("id")
+            name = (version.get("name") or "").strip() or "(unnamed)"
+            link = f"{base_url}/projects/{project_key}/versions/{version_id}" if version_id else ""
+            releases.append({
+                "id": f"jira-{project_key}-{version_id or name}",
+                "source": "jira",
+                "project": project_key,
+                "title": name,
+                "date": release_date,
+                "released": bool(version.get("released")),
+                "link": link,
+            })
+
+    releases.sort(key=lambda release: (release["date"], release["project"], release["title"].lower()))
     return {"releases": releases, "total": len(releases)}

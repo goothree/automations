@@ -28,7 +28,7 @@
     }
     .layout {
       width: 100%;
-      max-width: min(1200px, 96vw);
+      max-width: min(1500px, 98vw);
       margin: 0 auto;
       padding: clamp(1rem, 2vw, 2rem);
     }
@@ -101,6 +101,12 @@
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
+    .releases-table th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    .releases-table th.sortable:hover { color: var(--accent); }
+    .releases-table th .sort-indicator { margin-left: 0.25rem; font-size: 0.7rem; }
     .releases-table tr:last-child td { border-bottom: none; }
     .releases-table tbody tr:hover td { background: rgba(167, 139, 250, 0.05); }
     .release-name a {
@@ -109,6 +115,12 @@
       font-weight: 500;
     }
     .release-name a:hover { text-decoration: underline; }
+    .releases-table th.num,
+    .releases-table td.num {
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+    }
     .project-badge {
       display: inline-block;
       padding: 0.2rem 0.5rem;
@@ -164,6 +176,7 @@
     <div class="toolbar">
       <button type="button" id="btnRefresh" onclick="loadReleases()">Refresh</button>
       <a href="/" class="btn-link">Team Dashboard</a>
+      <a href="/calendar" class="btn-link">Test Calendar</a>
       <div class="filters">
         <label for="filterProject">Project</label>
         <select id="filterProject">
@@ -186,9 +199,15 @@
         <table class="releases-table">
           <thead>
             <tr>
-              <th>Project</th>
-              <th>Release Name</th>
-              <th>Release Date</th>
+              <th class="sortable" data-sort="project" onclick="setSort('project')">Project <span class="sort-indicator"></span></th>
+              <th class="sortable" data-sort="name" onclick="setSort('name')">Release Name <span class="sort-indicator"></span></th>
+              <th class="sortable" data-sort="release_date" onclick="setSort('release_date')">Release Date <span class="sort-indicator"></span></th>
+              <th class="sortable num" data-sort="total" onclick="setSort('total')">Total <span class="sort-indicator"></span></th>
+              <th class="sortable num" data-sort="qa" onclick="setSort('qa')">QA <span class="sort-indicator"></span></th>
+              <th class="sortable num" data-sort="in_work" onclick="setSort('in_work')">In Work <span class="sort-indicator"></span></th>
+              <th class="sortable num" data-sort="backlog" onclick="setSort('backlog')">Backlog <span class="sort-indicator"></span></th>
+              <th class="sortable num" data-sort="blocked" onclick="setSort('blocked')">Blocked <span class="sort-indicator"></span></th>
+              <th style="width: 120px;">Actions</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -201,6 +220,71 @@
   <script>
     var allReleases = [];
     var initialReleasesLoadDone = false;
+    var sortBy = 'release_date';
+    var sortDir = 'desc';
+
+    function setSort(col) {
+      if (sortBy === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      else { sortBy = col; sortDir = col === 'release_date' ? 'desc' : 'asc'; }
+      updateSortIndicators();
+      updateView();
+    }
+
+    function updateSortIndicators() {
+      document.querySelectorAll('.releases-table th.sortable').forEach(function(th) {
+        var ind = th.querySelector('.sort-indicator');
+        if (!ind) return;
+        var col = th.getAttribute('data-sort');
+        ind.textContent = (sortBy === col) ? (sortDir === 'asc' ? '\u25b2' : '\u25bc') : '';
+      });
+    }
+
+    function numericSortValue(release, key) {
+      var value = release[key];
+      if (value == null && key === 'total' && release.issue_count != null) {
+        value = release.issue_count;
+      }
+      return value == null ? null : Number(value);
+    }
+
+    function compareReleases(a, b, key) {
+      if (key === 'release_date') {
+        var dateA = a.release_date || '';
+        var dateB = b.release_date || '';
+        if (dateA && dateB) {
+          if (dateA !== dateB) return dateA.localeCompare(dateB);
+          return a.name.localeCompare(b.name);
+        }
+        if (dateA) return -1;
+        if (dateB) return 1;
+        return a.name.localeCompare(b.name);
+      }
+
+      if (key === 'total' || key === 'qa' || key === 'in_work' || key === 'backlog' || key === 'blocked') {
+        var numA = numericSortValue(a, key);
+        var numB = numericSortValue(b, key);
+        if (numA == null && numB == null) return a.name.localeCompare(b.name);
+        if (numA == null) return 1;
+        if (numB == null) return -1;
+        if (numA !== numB) return numA - numB;
+        return a.name.localeCompare(b.name);
+      }
+
+      var valA = String(a[key] || '').toLowerCase();
+      var valB = String(b[key] || '').toLowerCase();
+      if (valA !== valB) return valA.localeCompare(valB);
+      return a.name.localeCompare(b.name);
+    }
+
+    function sortReleases(releases) {
+      if (!sortBy) return releases;
+      var dir = sortDir === 'asc' ? 1 : -1;
+      return releases.slice().sort(function(a, b) {
+        var cmp = compareReleases(a, b, sortBy);
+        if (cmp !== 0) return cmp * dir;
+        return a.name.localeCompare(b.name);
+      });
+    }
 
     function escapeHtml(text) {
       var div = document.createElement('div');
@@ -231,20 +315,6 @@
       if (parts.length !== 3) return null;
       var date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
       return isNaN(date.getTime()) ? null : date;
-    }
-
-    function sortReleases(releases) {
-      return releases.slice().sort(function(a, b) {
-        var dateA = a.release_date || '';
-        var dateB = b.release_date || '';
-        if (dateA && dateB) {
-          if (dateA !== dateB) return dateB.localeCompare(dateA);
-          return a.name.localeCompare(b.name);
-        }
-        if (dateA) return -1;
-        if (dateB) return 1;
-        return a.name.localeCompare(b.name);
-      });
     }
 
     function getFilteredReleases() {
@@ -281,6 +351,7 @@
       }
 
       renderTable(releases);
+      updateSortIndicators();
       card.style.display = 'block';
       empty.style.display = 'none';
     }
@@ -292,14 +363,27 @@
       return '/?' + params.toString();
     }
 
+    function formatCount(value) {
+      return value == null ? '—' : String(value);
+    }
+
     function renderTable(releases) {
       var tbody = document.getElementById('tbody');
       tbody.innerHTML = releases.map(function(release) {
         var nameHtml = '<a href="' + escapeHtml(dashboardUrlForRelease(release)) + '">' + escapeHtml(release.name) + '</a>';
+        var jiraHtml = release.link
+          ? '<a class="btn-link" href="' + escapeHtml(release.link) + '" target="_blank" rel="noopener">Open in Jira</a>'
+          : '—';
         return '<tr>'
           + '<td><span class="project-badge">' + escapeHtml(release.project) + '</span></td>'
           + '<td class="release-name">' + nameHtml + '</td>'
           + '<td>' + escapeHtml(formatReleaseDate(release.release_date)) + '</td>'
+          + '<td class="num">' + escapeHtml(formatCount(release.total != null ? release.total : release.issue_count)) + '</td>'
+          + '<td class="num">' + escapeHtml(formatCount(release.qa)) + '</td>'
+          + '<td class="num">' + escapeHtml(formatCount(release.in_work)) + '</td>'
+          + '<td class="num">' + escapeHtml(formatCount(release.backlog)) + '</td>'
+          + '<td class="num">' + escapeHtml(formatCount(release.blocked)) + '</td>'
+          + '<td>' + jiraHtml + '</td>'
           + '</tr>';
       }).join('');
     }
@@ -321,6 +405,8 @@
 
     function loadReleases() {
       var savedFilters = initialReleasesLoadDone ? getReleaseFilterState() : null;
+      var savedSortBy = sortBy;
+      var savedSortDir = sortDir;
       var loading = document.getElementById('loading');
       var error = document.getElementById('error');
       var card = document.getElementById('card');
@@ -344,6 +430,8 @@
           }
           allReleases = result.data.releases || [];
           if (savedFilters) restoreReleaseFilterState(savedFilters);
+          sortBy = savedSortBy;
+          sortDir = savedSortDir;
           initialReleasesLoadDone = true;
           if (!allReleases.length) {
             count.textContent = '0 unreleased';
