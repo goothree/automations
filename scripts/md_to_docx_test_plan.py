@@ -204,4 +204,6 @@ if __name__ == "__main__":
         md = Path(sys.argv[1])
     if len(sys.argv) > 2:
         out = Path(sys.argv[2])
+    elif len(sys.argv) > 1:
+        out = md.with_suffix(".docx")
     convert_md_to_docx(md, out)

@@ -82,7 +82,7 @@ def convert_md_to_testpad(md_path: Path, out_path: Optional[Path] = None) -> Pat
             "Prerequisites: " + "; ".join(p[:60] for p in prereq_lines[:4])
         )
 
-    tc_pattern = re.compile(r"^###\s+(TC-\d+:[^\n]+)")
+    tc_pattern = re.compile(r"^###\s+(TC-\d+:[^\n]+)", re.MULTILINE)
     parts = tc_pattern.split(text)
     # parts[0] is preamble; then alternating title, body, title, body...
 

@@ -7,57 +7,45 @@ alwaysApply: true
 
 When the user asks to create a test plan for a Jira ticket:
 
-1. Fetch ticket details from Jira and generate the test plan as a `.docx` file (user typically wants only the Word doc, not markdown).
-2. Save locally under `reports/` as `reports/IDA-XXXX_test_plan.docx`.
-3. **Generate a Testpad script text file** from the test cases:
+## Output files (only these in `reports/`)
 
-   - Save as `reports/IDA-XXXX_testpad.txt`
-   - Use **tab-indented format** for Testpad paste:
-     - Top-level lines = test case titles (`TC-01: ...`)
-     - Tab-indented lines = steps under each test case
-   - Include a short header (ticket, summary, environment, key prerequisites)
-   - Prefer generating from the markdown before deleting it:
+| File | Required |
+|------|----------|
+| `reports/IDA-XXXX_test_plan.docx` | Yes — primary deliverable |
+| `reports/IDA-XXXX_testpad.txt` | Yes — Testpad import |
+| `reports/IDA-XXXX_test_plan.md` | **No — do not create or leave in repo** |
 
-   ```bash
-   .venv/bin/python scripts/test_plan_to_testpad.py reports/IDA-XXXX_test_plan.md reports/IDA-XXXX_testpad.txt
-   ```
+**Do not save markdown to `reports/`.** The user wants the Word doc only. If you use markdown as a scratch format to run `md_to_docx_test_plan.py`, write it to a **temp file** (e.g. `/tmp/IDA-XXXX_test_plan.md`) and delete it after conversion — or write the `.docx` and `_testpad.txt` directly.
 
-   Prefer the deliver script (uses hardcoded SharePoint sync path from config):
+## Workflow
+
+1. Fetch ticket details from Jira and generate the test plan content.
+2. Save **`reports/IDA-XXXX_test_plan.docx`** (Word only — not markdown).
+3. Save **`reports/IDA-XXXX_testpad.txt`** — tab-indented Testpad format:
+   - Top-level lines = test case titles (`TC-01: ...`)
+   - Tab-indented lines = steps under each test case
+   - Short header (ticket, summary, environment, key prerequisites)
+   - Prefer writing this file **directly** from the test cases you authored.
+   - Optional: generate from a **temp** `.md` via `test_plan_to_testpad.py`, then delete the temp file.
+
+4. **Deliver** with the deliver script (preferred):
 
    ```bash
    .venv/bin/python scripts/deliver_test_plan.py IDA-XXXX
    ```
 
-   Or copy manually to the OneDrive sync folder:
+   If `.docx` and `_testpad.txt` already exist and no temp `.md` is present, deliver copies and posts Jira without needing markdown.
 
-   - **SharePoint folder:** https://stryker-my.sharepoint.com/:f:/p/michael_guthrie/IgBAyEORHosITrKk3lSVFca_AePm9AG_nzqGIQvVf7EbPk0
-   - **Local sync path:** `/Users/michael.guthrie/Library/CloudStorage/OneDrive-Stryker/TestPlans`
+   SharePoint sync path: `/Users/michael.guthrie/Library/CloudStorage/OneDrive-Stryker/TestPlans`
 
-   ```bash
-   cp reports/IDA-XXXX_test_plan.docx "/Users/michael.guthrie/Library/CloudStorage/OneDrive-Stryker/TestPlans/"
-   cp reports/IDA-XXXX_testpad.txt "/Users/michael.guthrie/Library/CloudStorage/OneDrive-Stryker/TestPlans/"
-   ```
-
-   OneDrive sync uploads to SharePoint automatically. Do not skip either file.
-
-5. **Add a Jira comment** on the same ticket with a link to the test plan:
-
-   ```bash
-   cd jira-dashboard && ../.venv/bin/python -c "
-   from jira_client import add_test_plan_jira_comment
-   import json
-   print(json.dumps(add_test_plan_jira_comment('IDA-XXXX', 'IDA-XXXX_test_plan.docx'), indent=2))
-   "
-   ```
-
-   Uses `jira_client.add_test_plan_jira_comment()` — posts a Jira comment with a clickable link to the test plan file only (no folder link). The link must open the document in **SharePoint / Word Online for editing** (`?web=1`), not trigger a local download. Optional per-file override: `TestPlans/_sharepoint_links.json`.
+5. **Add a Jira comment** (included in deliver script) with a link to the `.docx` only. Link must open in **SharePoint / Word Online** (`?web=1`), not download locally.
 
 6. Confirm in the response:
    - Test plan `.docx` link
    - Testpad `.txt` path (local + SharePoint)
    - Jira comment posted (or error if Jira auth failed)
 
-Do not skip the Testpad text file, SharePoint copy, or Jira comment steps.
+Do not skip the Testpad text file, SharePoint copy, or Jira comment steps. **Do not leave `.md` files in `reports/`.**
 
 ## API / auth failure simulation — Requestly (when useful)
 
