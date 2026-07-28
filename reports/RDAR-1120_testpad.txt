@@ -1,0 +1,54 @@
+RDAR-1120 — Query C — TV_VC_event without app-event (failure indicator):
+Prerequisites: PRE-01: Build and environment (P1); PRE-02: Access (P1); PRE-03: Test devices (P1); PRE-04: GCP log search templates (P1)
+
+TC-01: Single VC call — device log contains TV_ACTIVATE app-event (P1)
+	Place a VC call to a room with TV integration; complete call flow so TV activates.
+	Export or view device logs for the test window.
+	Confirm the `app-event` line immediately follows with:
+	`senderId=ai.care.tv`
+	`eventType=TV_ACTIVATE`
+	`event-status=success`
+	`deviceId`, `conf-id`, and `description` populated
+
+TC-02: Single VC call — TV_ACTIVATE app-event in GCP with matching eventId (P1)
+	In GCP Logs Explorer, run Query A for the device and call time range.
+	Search GCP for the `eventId` from TC-01 (Query B).
+	Confirm GCP entry includes `conf-id` and `event-status=success`.
+
+TC-03: Back-to-back calls — no dropped TV_ACTIVATE app-event in GCP (P1)
+	Place first VC call; end call; confirm TV_ACTIVATE `app-event` in device log and GCP (TC-01/02).
+	Within 2–5 minutes, place second VC call to the same device.
+	Capture `eventId` for second call from device log.
+	Search GCP for second call `eventId`.
+	Optionally run Query C for the second-call window.
+
+TC-04: Reporting — TV_* events visible to report query (P1)
+	Run the TV activation report query (or dashboard used for HM "TV ACTIVATION NOT REPORTED").
+	For rooms exercised in TC-01–03, verify no new false "TV ACTIVATION NOT REPORTED" entries attributable to those successful activations.
+	Note: Allow reporting lag; re-check after sync interval if applicable.
+
+TC-05: Regression — CALL_STOP app-event still in GCP (P1)
+	Complete a VC call and end the session normally.
+	From device log, locate `app-event` with `eventType=CALL_STOP` (note `eventId`).
+	Search GCP for the `CALL_STOP` `app-event` / `eventId`.
+
+TC-06: TV vendor coverage — Samsung and LG description formats (P2)
+	Repeat TC-01/02 on a Samsung TV device (`description=EXLINK:SAMSUNG:...`).
+	Repeat on an LG TV device (`description=MPI:LG:`) if available.
+
+TC-07: Release build verification (P1)
+	Confirm device is on release build (not debug APK).
+	Run TC-03 (back-to-back calls) on release build.
+	Note: Pre-fix, release lost GCP lines while debug did not.
+
+TC-08: HM production spot check (P1)
+	Select 1–2 HM (`hclm`) rooms with recent VC + TV usage (or perform live test calls if permitted).
+	For each, verify GCP contains `app-event` + `TV_ACTIVATE` for recent sessions.
+	Compare "TV ACTIVATION NOT REPORTED" trend before vs after fix deployment window.
+
+TC-09: End-to-end QA smoke (P1)
+	Demo or HM: single call → device + GCP `TV_ACTIVATE` `app-event` with matching `eventId`.
+	Second consecutive call on same device → GCP line present.
+	`CALL_STOP` still in GCP.
+	Report query sees `TV_*` events; no false alert for verified calls.
+	Release build v3.0.79 confirmed.

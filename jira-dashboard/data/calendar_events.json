@@ -1,0 +1,70 @@
+{
+  "events": [
+    {
+      "id": "4e806cf5-d025-4c08-bce8-fec96f8d8806",
+      "title": "Regression for 07",
+      "date": "2026-07-22",
+      "end_date": "2026-07-23",
+      "notes": "Run IDA regression to support the 2026-07 ER release.",
+      "priority": "Medium",
+      "project": "IDA",
+      "created_at": "2026-07-22T14:56:33+00:00",
+      "updated_at": "2026-07-22T19:31:08+00:00"
+    },
+    {
+      "id": "452e3161-6d10-4a13-a193-1b071191fdd6",
+      "title": "Audio Tests",
+      "date": "2026-07-23",
+      "end_date": null,
+      "notes": "This is the comparison of 1.1.24.4 vs. 1.1.27 in order to release Q2P3.",
+      "priority": "High",
+      "project": "RDAR",
+      "created_at": "2026-07-22T18:19:30+00:00",
+      "updated_at": "2026-07-22T19:30:00+00:00"
+    },
+    {
+      "id": "b34ceb31-f87a-454d-a6c3-c9c83b69b06b",
+      "title": "SS v1.3.64",
+      "date": "2026-07-23",
+      "end_date": "2026-07-28",
+      "notes": "",
+      "priority": "High",
+      "project": "RDAR",
+      "created_at": "2026-07-22T18:26:04+00:00",
+      "updated_at": "2026-07-22T19:30:27+00:00"
+    },
+    {
+      "id": "d321adfa-e114-4081-b831-3fb48bd115fb",
+      "title": "Regression w/ Edge",
+      "date": "2026-07-27",
+      "end_date": "2026-07-29",
+      "notes": "Need to test IDA with Edge in order to support Edge in the field.",
+      "priority": "Medium",
+      "project": "IDA",
+      "created_at": "2026-07-22T17:13:22+00:00",
+      "updated_at": "2026-07-22T19:22:40+00:00"
+    },
+    {
+      "id": "4645b98b-421a-44ad-8c67-a772a4ee727a",
+      "title": "Q3 Testing",
+      "date": "2026-07-27",
+      "end_date": "2026-08-14",
+      "notes": "",
+      "priority": "Medium",
+      "project": "RDAR",
+      "created_at": "2026-07-22T18:33:04+00:00",
+      "updated_at": "2026-07-22T19:21:42+00:00"
+    },
+    {
+      "id": "88bdc323-05b9-4039-9e3c-2316b42abca6",
+      "title": "Update Rack Room",
+      "date": "2026-08-03",
+      "end_date": "2026-08-05",
+      "notes": "Need to update the devices in the rack room and make sure the right app and firmware versions are installed on the correct sets of racks.",
+      "priority": "Low",
+      "project": null,
+      "created_at": "2026-07-23T14:39:06+00:00",
+      "updated_at": "2026-07-23T14:39:06+00:00"
+    }
+  ]
+}

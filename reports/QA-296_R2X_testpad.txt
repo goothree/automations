@@ -1,0 +1,42 @@
+QA-296 — Sensors Service v1.3.64 — R2X Validation
+Prerequisites: PRE-01: Environment (P1); PRE-02: Sensor Service Test App (P1); PRE-03: HSA deployment (P1); PRE-04: MQTT tooling (P1)
+
+TC-01: R2X — supported delivery types (A1) (P1)
+	Query SS Supported Image Types for bottom camera.
+	Check top camera in Test App.
+	Attempt Hardware Buffer delivery selection.
+
+TC-02: R2X — JPEG delivery and preview (A4) (P1)
+	Enable JPEG delivery in Test App.
+	Verify live preview on bottom camera.
+	Change resolution; disable and re-enable stream.
+
+TC-03: HSA application regression (B3) (P1)
+	Verify HSA starts normally.
+	Verify bottom camera connection succeeds.
+	Verify inference / data collection continues.
+	Verify VM calls work.
+	Verify UI shows normal operation.
+
+TC-04: MQTT — get-app-config (C1) (P1)
+	Publish: `{"command":"get-app-config"}`
+	Capture response on adbcresponse topic.
+
+TC-05: MQTT — face blur (C2) (P1)
+	Capture baseline preview without blur.
+	Enable: `{"command":"face-blur-on","pixelSize":22}`
+	Send face-blur-on again while active.
+	Disable: `{"command":"face-blur-off"}`
+	Enable blur again after disable.
+
+TC-07: Fresh install and upgrade — R2X (E) (P1)
+	Fresh install SS v1.3.64 → run TC-01, TC-02, TC-03 smoke.
+	Upgrade from previous production SS → repeat smoke.
+
+TC-08: R2X smoke — end-to-end (P1)
+	JPEG-only; bottom only; no top cam (TC-01)
+	JPEG preview stable (TC-02)
+	HSA regression (TC-03)
+	MQTT config + face blur (TC-04, TC-05)
+	Upgrade validated (TC-07)
+	24h soak completed or scheduled (TC-06)

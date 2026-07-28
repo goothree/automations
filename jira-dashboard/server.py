@@ -17,9 +17,16 @@ from flask_cors import CORS
 from jira_client import (
     fetch_issues,
     fetch_unreleased_releases,
+    fetch_calendar_releases,
     get_issue_full,
     get_issue_transitions,
     set_issue_transition,
+)
+from calendar_store import (
+    list_custom_events,
+    create_custom_event,
+    update_custom_event,
+    delete_custom_event,
 )
 from config import is_configured
 STATIC_DIR = DASHBOARD_DIR / "static"
@@ -97,9 +104,58 @@ def releases():
     return jsonify(result)
 
 
+@app.route("/api/calendar")
+def calendar_data():
+    """Return Jira release dates and custom calendar events."""
+    releases = fetch_calendar_releases()
+    if "error" in releases:
+        print("Jira calendar API error:", releases["error"], file=sys.stderr)
+        return jsonify(releases), 500
+    response = jsonify({
+        "releases": releases.get("releases", []),
+        "custom": list_custom_events(),
+    })
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
+
+
+@app.route("/api/calendar/custom", methods=["POST"])
+def calendar_create_custom():
+    result = create_custom_event(request.get_json(silent=True) or {})
+    if "error" in result:
+        return jsonify(result), 400
+    response = jsonify(result)
+    response.headers["Cache-Control"] = "no-store"
+    return response, 201
+
+
+@app.route("/api/calendar/custom/<event_id>", methods=["PUT"])
+def calendar_update_custom(event_id):
+    result = update_custom_event(event_id, request.get_json(silent=True) or {})
+    if "error" in result:
+        status = 404 if result["error"] == "Event not found" else 400
+        return jsonify(result), status
+    response = jsonify(result)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.route("/api/calendar/custom/<event_id>", methods=["DELETE"])
+def calendar_delete_custom(event_id):
+    result = delete_custom_event(event_id)
+    if "error" in result:
+        return jsonify(result), 404
+    return jsonify(result)
+
+
 @app.route("/releases")
 def releases_page():
     return _html_response("releases.html")
+
+
+@app.route("/calendar")
+def calendar_page():
+    return _html_response("calendar.html")
 
 
 @app.route("/")
