@@ -36,18 +36,17 @@ TC-07: Manual Settings install — regression baseline (P1)
 	Step B: Download/push cert; Settings → Install a certificate → CA certificate → INSTALL ANYWAY; select file from Downloads.
 	Step C: Repeat Step A; confirm new cert in list.
 
-TC-08: VendorCertPinner cert path (P2)
-	Deploy `adb_vendor.p7b` to `/sdcard/careai/vendor/certs/`.
-	Launch or trigger `ai.care.vendorcertpinner` behavior per app design.
-	Coordinate full MDM push validation with IDA-5326 when MDM is ready.
-
-TC-09: Overlay / system CA service (P2)
+TC-08: Overlay / system CA service (P2)
 	On device shell (if available), run: `getprop | grep init.svc | grep cacerts`
 	Confirm certs from TC-01 are recognized per system-ca-autoinstall-runbook.md (dev verified).
+
+TC-09: Fresh install and upgrade (E) (P1)
+	Fresh install SS v3.0.79 → run TC-01, TC-07 smoke.
+	Upgrade from previous production SS → repeat smoke.
 
 TC-10: End-to-end QA smoke (P1)
 	Valid `${hash}.0` on device → MQTT `cert-install` → `(apparent success)`.
 	Cert visible in Trusted credentials (cai).
 	Invalid path → `INVALID certPathValue`.
 	Manual Settings install still works (TC-07).
-	IPM v3.0.79 release build confirmed.
+	Release build v3.0.79 confirmed.
