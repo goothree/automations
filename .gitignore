@@ -7,6 +7,9 @@ page_dump*.html
 # Personal todo/notes (not for the repo)
 TODO.md
 
+# Test plan deliverables and local reports (SharePoint is source of truth)
+reports/
+
 # Virtual environments
 .venv/
 venv/
