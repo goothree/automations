@@ -1,0 +1,76 @@
+{
+  "messages": [
+    {
+      "group": "ADT",
+      "slug": "admit",
+      "aliases": ["a01", "hl7-admit"],
+      "name": "[A01] Admit",
+      "event": "A01",
+      "template": "templates/a01_admit_adtRoom.hl7",
+      "description": "Admit patient to unit/room via HL7 MLLP"
+    },
+    {
+      "group": "ADT",
+      "slug": "discharge",
+      "aliases": ["a03", "a03b"],
+      "name": "[A03] Discharge",
+      "event": "A03",
+      "template": "templates/a03_discharge.hl7",
+      "description": "Discharge patient using saved admit state via HL7 MLLP"
+    },
+    {
+      "group": "ADT",
+      "slug": "transfer",
+      "aliases": ["a02", "a02b"],
+      "name": "[A02] Transfer",
+      "event": "A02",
+      "template": "templates/a02_transfer.hl7",
+      "description": "Transfer patient to new location; prior location from saved admit state"
+    },
+    {
+      "group": "ADT",
+      "slug": "in-transit",
+      "aliases": ["a09", "a09b"],
+      "name": "[A09] In Transit",
+      "event": "A09",
+      "template": "templates/a09_in_transit.hl7",
+      "description": "Patient in transit to new location; uses saved admit state"
+    },
+    {
+      "group": "ADT",
+      "slug": "back-in-room",
+      "aliases": ["a10", "a10b"],
+      "name": "[A10] Back In Room",
+      "event": "A10",
+      "template": "templates/a10_back_in_room.hl7",
+      "description": "Patient back in room; uses saved admit state"
+    },
+    {
+      "group": "ADT",
+      "slug": "update",
+      "aliases": ["a08", "a08b"],
+      "name": "[A08] Update",
+      "event": "A08",
+      "template": "templates/a08_update.hl7",
+      "description": "Update patient information; requires --patient and saved admit state"
+    },
+    {
+      "group": "ORM",
+      "slug": "discharge-order",
+      "aliases": ["disch", "discharge-task-order"],
+      "name": "[DISCH] Discharge Order",
+      "event": "O01",
+      "template": "templates/discharge_task_order.hl7",
+      "description": "ORM discharge task order; uses saved admit state"
+    },
+    {
+      "group": "ORM",
+      "slug": "cancel-discharge-order",
+      "aliases": ["disch-cancel", "cancel", "discharge-order-cancel"],
+      "name": "[DISCH] Cancel Discharge Order",
+      "event": "O01",
+      "template": "templates/discharge_task_order_cancel.hl7",
+      "description": "Cancel ORM discharge task order; uses saved order ID from discharge-order"
+    }
+  ]
+}

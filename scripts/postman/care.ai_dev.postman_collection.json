@@ -1,0 +1,534 @@
+{
+  "info": {
+    "_postman_id": "99defa7c-e94e-49bd-86c9-b90eda9cda35",
+    "name": "care.ai dev",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "25220938",
+    "_collection_link": "https://go.postman.co/collection/25220938-99defa7c-e94e-49bd-86c9-b90eda9cda35?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "ADT",
+      "item": [
+        {
+          "name": "[A01] Admit",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var clientId = pm.variables.get(\"client_id\");\r",
+                  "var clientSecret = pm.variables.get(\"client_secret\");\r",
+                  "var audience = pm.variables.get(\"audience\");\r",
+                  "\r",
+                  "var raw = JSON.stringify({\r",
+                  "  \"grant_type\": \"client_credentials\",\r",
+                  "  \"client_id\": clientId,\r",
+                  "  \"client_secret\": clientSecret,\r",
+                  "  \"audience\": audience\r",
+                  "});\r",
+                  "\r",
+                  "const postRequest = {\r",
+                  "  url: 'https://dev-auth.care.ai/oauth/token',\r",
+                  "  method: 'POST',\r",
+                  "  timeout: 0,\r",
+                  "  header: {\r",
+                  "    \"Content-Type\": \"application/json\"\r",
+                  "  },\r",
+                  "  body: raw\r",
+                  "};\r",
+                  "\r",
+                  "pm.sendRequest(postRequest, function (err, res) {\r",
+                  "    var responseJson = res.json();\r",
+                  "    postman.setEnvironmentVariable(\"access_token\", responseJson.access_token);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followOriginalHttpMethod": false
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"AccountNumber\": \"W00000429182\",\r\n    \"HcaFacilityMnemonic\": \"{{HcaFacilityMnemonic}}\",\r\n    \"MessageDateTime\": \"2022-11-28T15:06:00-04:00\",\r\n    \"MessageKey\": \"ffd21f25-9ba6-5306-abb7-86a0582f0291\",\r\n    \"MessageType\": \"ADT\",\r\n    \"Payload\": [\r\n        {\r\n            \"AccountNumber\": \"W00000429182\",\r\n            \"AdmissionDate\": \"2023-02-22T11:30:00-05:00\",\r\n            \"AdmittingPhysician\": {\r\n                \"Degree\": null,\r\n                \"FirstName\": null,\r\n                \"LastName\": null,\r\n                \"MiddleName\": null,\r\n                \"Mnemonic\": \"\",\r\n                \"Prefix\": null,\r\n                \"Suffix\": null\r\n            },\r\n            \"AdtAccountStatus\": \"PRE\",\r\n            \"AdtPatientClass\": \"P\",\r\n            \"AdtPatientType\": \"SDC\",\r\n            \"AdtTriggerEvent\": \"A01\",\r\n            \"Birthdate\": \"1975-07-07\",\r\n            \"ChiefComplaint\": \"OSTEOARTHRITIS LEFT HIP\",\r\n            \"DischargeDate\": null,\r\n            \"FirstName\": \"Brian\",\r\n            \"LastName\": \"Pitt\",\r\n            \"Location\": {\r\n                \"Bed\": \"\",\r\n                \"Coid\": \"27550\",\r\n                \"Room\": \"J.119\",\r\n                \"Unit\": \"J.1W\"\r\n            },\r\n            \"MedicalRecordNumber\": \"W000042133\",\r\n            \"PreferredName\": \"\",\r\n            \"Sex\": \"M\"\r\n        }\r\n    ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://{{dev_inbound_url}}/tenants/{{dev_tenant}}/inbound",
+              "protocol": "https",
+              "host": [
+                "{{dev_inbound_url}}"
+              ],
+              "path": [
+                "tenants",
+                "{{dev_tenant}}",
+                "inbound"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[A02] Transfer",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var clientId = pm.variables.get(\"client_id\");\r",
+                  "var clientSecret = pm.variables.get(\"client_secret\");\r",
+                  "var audience = pm.variables.get(\"audience\");\r",
+                  "\r",
+                  "var raw = JSON.stringify({\r",
+                  "  \"grant_type\": \"client_credentials\",\r",
+                  "  \"client_id\": clientId,\r",
+                  "  \"client_secret\": clientSecret,\r",
+                  "  \"audience\": audience\r",
+                  "});\r",
+                  "\r",
+                  "const postRequest = {\r",
+                  "  url: 'https://dev-auth.care.ai/oauth/token',\r",
+                  "  method: 'POST',\r",
+                  "  timeout: 0,\r",
+                  "  header: {\r",
+                  "    \"Content-Type\": \"application/json\"\r",
+                  "  },\r",
+                  "  body: raw\r",
+                  "};\r",
+                  "\r",
+                  "pm.sendRequest(postRequest, function (err, res) {\r",
+                  "    var responseJson = res.json();\r",
+                  "    postman.setEnvironmentVariable(\"access_token\", responseJson.access_token);\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"AccountNumber\": \"F00000429185\",\r\n    \"HcaFacilityMnemonic\": \"{{HcaFacilityMnemonic}}\",\r\n    \"MessageDateTime\": \"2022-11-28T15:06:00-04:00\",\r\n    \"MessageKey\": \"ffd21f25-9ba6-5306-abb7-86a0582f0291\",\r\n    \"MessageType\": \"ADT\",\r\n    \"Payload\": [\r\n        {\r\n            \"AccountNumber\": \"F00000429185\",\r\n            \"AdmissionDate\": \"2023-03-29T12:30:00-07:00\",\r\n            \"AdmittingPhysician\": {\r\n                \"Degree\": null,\r\n                \"FirstName\": null,\r\n                \"LastName\": null,\r\n                \"MiddleName\": null,\r\n                \"Mnemonic\": \"\",\r\n                \"Prefix\": null,\r\n                \"Suffix\": null\r\n            },\r\n            \"AdtAccountStatus\": \"PRE\",\r\n            \"AdtPatientClass\": \"P\",\r\n            \"AdtPatientType\": \"SDC\",\r\n            \"AdtTriggerEvent\": \"A02\",\r\n            \"Birthdate\": \"1975-07-07\",\r\n            \"ChiefComplaint\": \"OSTEOARTHRITIS LEFT HIP\",\r\n            \"DischargeDate\": null,\r\n            \"FirstName\": \"Peter\",\r\n            \"LastName\": \"Lassen\",\r\n            \"Location\": {\r\n                \"Bed\": \"\",\r\n                \"Coid\": \"27550\",\r\n                \"Room\": \"J.119\",\r\n                \"Unit\": \"J.1W\"\r\n            },\r\n            \"MedicalRecordNumber\": \"F000042136\",\r\n            \"PreferredName\": \"\",\r\n            \"Sex\": \"M\"\r\n        }\r\n    ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://{{dev_inbound_url}}/tenants/{{dev_tenant}}/inbound",
+              "protocol": "https",
+              "host": [
+                "{{dev_inbound_url}}"
+              ],
+              "path": [
+                "tenants",
+                "{{dev_tenant}}",
+                "inbound"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[A03] Discharge",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var clientId = pm.variables.get(\"client_id\");\r",
+                  "var clientSecret = pm.variables.get(\"client_secret\");\r",
+                  "var audience = pm.variables.get(\"audience\");\r",
+                  "\r",
+                  "var raw = JSON.stringify({\r",
+                  "  \"grant_type\": \"client_credentials\",\r",
+                  "  \"client_id\": clientId,\r",
+                  "  \"client_secret\": clientSecret,\r",
+                  "  \"audience\": audience\r",
+                  "});\r",
+                  "\r",
+                  "const postRequest = {\r",
+                  "  url: 'https://dev-auth.care.ai/oauth/token',\r",
+                  "  method: 'POST',\r",
+                  "  timeout: 0,\r",
+                  "  header: {\r",
+                  "    \"Content-Type\": \"application/json\"\r",
+                  "  },\r",
+                  "  body: raw\r",
+                  "};\r",
+                  "\r",
+                  "pm.sendRequest(postRequest, function (err, res) {\r",
+                  "    var responseJson = res.json();\r",
+                  "    postman.setEnvironmentVariable(\"access_token\", responseJson.access_token);\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"AccountNumber\": \"F00000429197\",\r\n    \"HcaFacilityMnemonic\": \"{{HcaFacilityMnemonic}}\",\r\n    \"MessageDateTime\": \"2023-05-04T15:06:00-04:00\",\r\n    \"MessageKey\": \"ffd21f25-9ba6-5306-abb7-86a0582f0291\",\r\n    \"MessageType\": \"ADT\",\r\n    \"Payload\": [\r\n        {\r\n            \"AccountNumber\": \"F00000429197\",\r\n            \"AdmissionDate\": \"2023-05-04T12:30:00-07:00\",\r\n            \"AdmittingPhysician\": {\r\n                \"Degree\": null,\r\n                \"FirstName\": null,\r\n                \"LastName\": null,\r\n                \"MiddleName\": null,\r\n                \"Mnemonic\": \"\",\r\n                \"Prefix\": null,\r\n                \"Suffix\": null\r\n            },\r\n            \"AdtAccountStatus\": \"PRE\",\r\n            \"AdtPatientClass\": \"P\",\r\n            \"AdtPatientType\": \"SDC\",\r\n            \"AdtTriggerEvent\": \"A03\",\r\n            \"Birthdate\": \"1975-07-07\",\r\n            \"ChiefComplaint\": \"OSTEOARTHRITIS LEFT HIP\",\r\n            \"DischargeDate\": null,\r\n            \"FirstName\": \"Michael\",\r\n            \"LastName\": \"Yueng\",\r\n            \"Location\": {\r\n                \"Bed\": \"\",\r\n                \"Coid\": \"27550\",\r\n                \"Room\": \"\",\r\n                \"Unit\": \"J.1W\"\r\n            },\r\n            \"MedicalRecordNumber\": \"F000042147\",\r\n            \"PreferredName\": \"\",\r\n            \"Sex\": \"M\"\r\n        }\r\n    ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://{{dev_inbound_url}}/tenants/{{dev_tenant}}/inbound",
+              "protocol": "https",
+              "host": [
+                "{{dev_inbound_url}}"
+              ],
+              "path": [
+                "tenants",
+                "{{dev_tenant}}",
+                "inbound"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[A08] Update",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var clientId = pm.variables.get(\"client_id\");\r",
+                  "var clientSecret = pm.variables.get(\"client_secret\");\r",
+                  "var audience = pm.variables.get(\"audience\");\r",
+                  "\r",
+                  "var raw = JSON.stringify({\r",
+                  "  \"grant_type\": \"client_credentials\",\r",
+                  "  \"client_id\": clientId,\r",
+                  "  \"client_secret\": clientSecret,\r",
+                  "  \"audience\": audience\r",
+                  "});\r",
+                  "\r",
+                  "const postRequest = {\r",
+                  "  url: 'https://dev-auth.care.ai/oauth/token',\r",
+                  "  method: 'POST',\r",
+                  "  timeout: 0,\r",
+                  "  header: {\r",
+                  "    \"Content-Type\": \"application/json\"\r",
+                  "  },\r",
+                  "  body: raw\r",
+                  "};\r",
+                  "\r",
+                  "pm.sendRequest(postRequest, function (err, res) {\r",
+                  "    var responseJson = res.json();\r",
+                  "    postman.setEnvironmentVariable(\"access_token\", responseJson.access_token);\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"AccountNumber\": \"F00000429194\",\r\n    \"HcaFacilityMnemonic\": \"{{HcaFacilityMnemonic}}\",\r\n    \"MessageDateTime\": \"2022-11-28T15:06:00-04:00\",\r\n    \"MessageKey\": \"ffd21f25-9ba6-5306-abb7-86a0582f0291\",\r\n    \"MessageType\": \"ADT\",\r\n    \"Payload\": [\r\n        {\r\n            \"AccountNumber\": \"F00000429194\",\r\n            \"AdmissionDate\": \"2023-03-29T12:30:00-07:00\",\r\n            \"AdmittingPhysician\": {\r\n                \"Degree\": null,\r\n                \"FirstName\": null,\r\n                \"LastName\": null,\r\n                \"MiddleName\": null,\r\n                \"Mnemonic\": \"\",\r\n                \"Prefix\": null,\r\n                \"Suffix\": null\r\n            },\r\n            \"AdtAccountStatus\": \"PRE\",\r\n            \"AdtPatientClass\": \"P\",\r\n            \"AdtPatientType\": \"SDC\",\r\n            \"AdtTriggerEvent\": \"A08\",\r\n            \"Birthdate\": \"1975-07-07\",\r\n            \"ChiefComplaint\": \"OSTEOARTHRITIS LEFT HIP\",\r\n            \"DischargeDate\": null,\r\n            \"FirstName\": \"Michael\",\r\n            \"LastName\": \"Jenning\",\r\n            \"Location\": {\r\n                \"Bed\": \"\",\r\n                \"Coid\": \"27550\",\r\n                \"Room\": \"J.119\",\r\n                \"Unit\": \"J.1W\"\r\n            },\r\n            \"MedicalRecordNumber\": \"F000042145\",\r\n            \"PreferredName\": \"\",\r\n            \"Sex\": \"M\"\r\n        }\r\n    ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://{{dev_inbound_url}}/tenants/{{dev_tenant}}/inbound",
+              "protocol": "https",
+              "host": [
+                "{{dev_inbound_url}}"
+              ],
+              "path": [
+                "tenants",
+                "{{dev_tenant}}",
+                "inbound"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[A13] Update - cancel discharge",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var clientId = pm.variables.get(\"client_id\");\r",
+                  "var clientSecret = pm.variables.get(\"client_secret\");\r",
+                  "var audience = pm.variables.get(\"audience\");\r",
+                  "\r",
+                  "var raw = JSON.stringify({\r",
+                  "  \"grant_type\": \"client_credentials\",\r",
+                  "  \"client_id\": clientId,\r",
+                  "  \"client_secret\": clientSecret,\r",
+                  "  \"audience\": audience\r",
+                  "});\r",
+                  "\r",
+                  "const postRequest = {\r",
+                  "  url: 'https://dev-auth.care.ai/oauth/token',\r",
+                  "  method: 'POST',\r",
+                  "  timeout: 0,\r",
+                  "  header: {\r",
+                  "    \"Content-Type\": \"application/json\"\r",
+                  "  },\r",
+                  "  body: raw\r",
+                  "};\r",
+                  "\r",
+                  "pm.sendRequest(postRequest, function (err, res) {\r",
+                  "    var responseJson = res.json();\r",
+                  "    postman.setEnvironmentVariable(\"access_token\", responseJson.access_token);\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"AccountNumber\": \"F00000329971\",\r\n    \"HcaFacilityMnemonic\": \"{{HcaFacilityMnemonic}}\",\r\n    \"MessageDateTime\": \"2022-11-02T15:06:00-04:00\",\r\n    \"MessageKey\": \"ffd21f25-9ba6-5306-abb7-86a0582f0291\",\r\n    \"MessageType\": \"ADT\",\r\n    \"Payload\": [\r\n        {\r\n            \"AccountNumber\": \"F00000329971\",\r\n            \"AdmissionDate\": \"2022-11-10T07:30:00-05:00\",\r\n            \"AdmittingPhysician\": {\r\n                \"Degree\": null,\r\n                \"FirstName\": null,\r\n                \"LastName\": null,\r\n                \"MiddleName\": null,\r\n                \"Mnemonic\": \"\",\r\n                \"Prefix\": null,\r\n                \"Suffix\": null\r\n            },\r\n            \"AdtAccountStatus\": \"PRE\",\r\n            \"AdtPatientClass\": \"P\",\r\n            \"AdtPatientType\": \"SDC\",\r\n            \"AdtTriggerEvent\": \"A13\",\r\n            \"Birthdate\": \"1959-07-07\",\r\n            \"ChiefComplaint\": \"OSTEOARTHRITIS LEFT HIP\",\r\n            \"DischargeDate\": null,\r\n            \"FirstName\": \"ANTHONY\",\r\n            \"LastName\": \"LOPEZ\",\r\n            \"Location\": {\r\n                \"Bed\": \"\",\r\n                \"Coid\": \"27550\",\r\n                \"Room\": \"J.119\",\r\n                \"Unit\": \"J.1W\"\r\n            },\r\n            \"MedicalRecordNumber\": \"F000022725\",\r\n            \"PreferredName\": \"\",\r\n            \"Sex\": \"M\"\r\n        }\r\n    ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://{{dev_inbound_url}}/tenants/{{dev_tenant}}/inbound",
+              "protocol": "https",
+              "host": [
+                "{{dev_inbound_url}}"
+              ],
+              "path": [
+                "tenants",
+                "{{dev_tenant}}",
+                "inbound"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Bed Movement",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "https://processing-mock-data-dot-development-cloud-services.appspot.com/tenants/lab/pub-sub/area-event?count=5&deviceId=cai:CAI240418489&module=FALL%20PREVENTION",
+              "protocol": "https",
+              "host": [
+                "processing-mock-data-dot-development-cloud-services",
+                "appspot",
+                "com"
+              ],
+              "path": [
+                "tenants",
+                "lab",
+                "pub-sub",
+                "area-event"
+              ],
+              "query": [
+                {
+                  "key": "count",
+                  "value": "5"
+                },
+                {
+                  "key": "deviceId",
+                  "value": "cai:CAI240418489"
+                },
+                {
+                  "key": "module",
+                  "value": "FALL%20PREVENTION"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "ORM",
+      "item": [
+        {
+          "name": "[DISCH] Discharge Order",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var clientId = pm.variables.get(\"client_id\");\r",
+                  "var clientSecret = pm.variables.get(\"client_secret\");\r",
+                  "var audience = pm.variables.get(\"audience\");\r",
+                  "\r",
+                  "var raw = JSON.stringify({\r",
+                  "  \"grant_type\": \"client_credentials\",\r",
+                  "  \"client_id\": clientId,\r",
+                  "  \"client_secret\": clientSecret,\r",
+                  "  \"audience\": audience\r",
+                  "});\r",
+                  "\r",
+                  "const postRequest = {\r",
+                  "  url: 'https://dev-auth.care.ai/oauth/token',\r",
+                  "  method: 'POST',\r",
+                  "  timeout: 0,\r",
+                  "  header: {\r",
+                  "    \"Content-Type\": \"application/json\"\r",
+                  "  },\r",
+                  "  body: raw\r",
+                  "};\r",
+                  "\r",
+                  "pm.sendRequest(postRequest, function (err, res) {\r",
+                  "    var responseJson = res.json();\r",
+                  "    postman.setEnvironmentVariable(\"access_token\", responseJson.access_token);\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"AccountNumber\": \"F00000327139\",\r\n    \"HcaFacilityMnemonic\": \"{{HcaFacilityMnemonic}}\",\r\n    \"MessageDateTime\": \"2022-11-02T10:07:00-04:00\",\r\n    \"MessageKey\": \"ca469984-a4cc-5a1f-8fb1-732bbb790352\",\r\n    \"MessageType\": \"ORM\",\r\n    \"Payload\": [\r\n        {\r\n            \"Category\": \"DISPOM\",\r\n            \"CategoryDescription\": \"Discharge Orders\",\r\n            \"CategoryScreen\": \"\",\r\n            \"CategoryScreenDescription\": \"efdMU3discha011\",\r\n            \"EnteredByHca34\": \"DR.SB4\",\r\n            \"EnteredByName\": \"BAIG,SHEERAZ\",\r\n            \"EnteredDateTime\": \"2022-11-02T10:07:00-04:00\",\r\n            \"EventName\": \"Discharge Order\",\r\n            \"EventType\": \"DISCH\",\r\n            \"FillerId\": \"DISPOM-20221102-0017\",\r\n            \"LastUpdated\": null,\r\n            \"LocationDescription\": \"NURSING ADMINISTRATION\",\r\n            \"LocationMnemonic\": \"F.NRS\",\r\n            \"OBXs\": [\r\n                {\r\n                    \"ObservationId\": \"D78200024A\",\r\n                    \"ObservationSubId\": \"\",\r\n                    \"ObservationText\": \"PCP:\",\r\n                    \"ObservationValue\": \"UNDEFINED\",\r\n                    \"SetId\": \"1\"\r\n                },\r\n                {\r\n                    \"ObservationId\": \"D78200033A\",\r\n                    \"ObservationSubId\": \"\",\r\n                    \"ObservationText\": \"PCP follow up timeframe:\",\r\n                    \"ObservationValue\": \"In 1-2 wks:In 1-2 weeks\",\r\n                    \"SetId\": \"2\"\r\n                },\r\n                {\r\n                    \"ObservationId\": \"EFDDCOTEL\",\r\n                    \"ObservationSubId\": \"\",\r\n                    \"ObservationText\": \"Is patient on Telemetry:\",\r\n                    \"ObservationValue\": \"Y:Yes\",\r\n                    \"SetId\": \"3\"\r\n                },\r\n                {\r\n                    \"ObservationId\": \"hcaADM0160\",\r\n                    \"ObservationSubId\": \"\",\r\n                    \"ObservationText\": \"IPO Pop Up Generated:\",\r\n                    \"ObservationValue\": \"N:No\",\r\n                    \"SetId\": \"4\"\r\n                },\r\n                {\r\n                    \"ObservationId\": \"hcaMU3d038\",\r\n                    \"ObservationSubId\": \"1\",\r\n                    \"ObservationText\": \"Does patient have any of the following conditions at discharge?\",\r\n                    \"ObservationValue\": \"None:None\",\r\n                    \"SetId\": \"5\"\r\n                },\r\n                {\r\n                    \"ObservationId\": \"hcaPTDO\",\r\n                    \"ObservationSubId\": \"\",\r\n                    \"ObservationText\": \"Discharge order:\",\r\n                    \"ObservationValue\": \"Y\",\r\n                    \"SetId\": \"6\"\r\n                },\r\n                {\r\n                    \"ObservationId\": \"hcxPD24220\",\r\n                    \"ObservationSubId\": \"\",\r\n                    \"ObservationText\": \"Discharge to:\",\r\n                    \"ObservationValue\": \"HmSlf Care:Home/Self Care\",\r\n                    \"SetId\": \"7\"\r\n                },\r\n                {\r\n                    \"ObservationId\": \"hcxPD24637\",\r\n                    \"ObservationSubId\": \"1\",\r\n                    \"ObservationText\": \"Additional Discharge Routines:\",\r\n                    \"ObservationValue\": \"PCP F/U:PCP Follow-Up\",\r\n                    \"SetId\": \"8\"\r\n                },\r\n                {\r\n                    \"ObservationId\": \"hcxPD24637\",\r\n                    \"ObservationSubId\": \"2\",\r\n                    \"ObservationText\": \"Additional Discharge Routines:\",\r\n                    \"ObservationValue\": \"Consul F/U:Consultant Follow-Up\",\r\n                    \"SetId\": \"9\"\r\n                },\r\n                {\r\n                    \"ObservationId\": \"hcxPD24638\",\r\n                    \"ObservationSubId\": \"1\",\r\n                    \"ObservationText\": \"Diet:\",\r\n                    \"ObservationValue\": \"Res Diet:Resume Home Diet/Feeds\",\r\n                    \"SetId\": \"10\"\r\n                },\r\n                {\r\n                    \"ObservationId\": \"hcxPD25438\",\r\n                    \"ObservationSubId\": \"1\",\r\n                    \"ObservationText\": \"Activity:\",\r\n                    \"ObservationValue\": \"Resume nrm:Resume Normal Activity\",\r\n                    \"SetId\": \"11\"\r\n                }\r\n            ],\r\n            \"OrderControl\": \"NEW\",\r\n            \"PhysicianFirstName\": \"Sheeraz\",\r\n            \"PhysicianLastName\": \"Baig\",\r\n            \"PhysicianMnemonic\": \"BAISH\",\r\n            \"PlacerId\": \"390803.001\",\r\n            \"Priority\": \"S\",\r\n            \"ProcedureMnemonic\": \"DISCH\",\r\n            \"ProcedureNumber\": \"01200\",\r\n            \"ProcedureScreen\": \"efdMU3discha011\",\r\n            \"ServiceDateTime\": \"2022-11-02T10:07:00-04:00\",\r\n            \"Status\": \"T\",\r\n            \"Type\": \"CO\"\r\n        }\r\n    ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://{{dev_inbound_url}}/tenants/{{dev_tenant}}/inbound",
+              "protocol": "https",
+              "host": [
+                "{{dev_inbound_url}}"
+              ],
+              "path": [
+                "tenants",
+                "{{dev_tenant}}",
+                "inbound"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Run care.ai dev Postman collection requests.
+#
+# Setup (once):
+#   cp Inbound_Dev.postman_environment.json scripts/postman/
+#   # or cp scripts/postman/.env.example scripts/postman/.env and fill in values
+#
+# Examples:
+#   ./run_postman help
+#   ./run_postman list
+#   ./run_postman a01                    # saves account, MRN, facility, unit, room
+#   ./run_postman a01 --facility COCQA1A --unit "J.1W" --room "J.119"
+#   ./run_postman a02 --facility COCQA1A --unit "J.2W" --room "J.205"
+#   ./run_postman a03
+#   ./run_postman clear-admit            # clear saved admit state
+#   ./run_postman bed-movement --device-id "CAI240418489"
+set -e
+cd "$(dirname "$0")"
+if [[ -x .venv/bin/python ]]; then
+  .venv/bin/python scripts/postman_runner.py "$@"
+else
+  python3 scripts/postman_runner.py "$@"
+fi

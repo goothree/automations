@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Run care.ai HL7 message templates.
+#
+# Setup (once):
+#   cp scripts/hl7/.env.example scripts/hl7/.env
+#
+# Examples:
+#   ./run_hl7 help
+#   ./run_hl7 list
+#   ./run_hl7 admit --facility vinelandqa --unit testrack01 --room slot04
+#   ./run_hl7 discharge
+#   ./run_hl7 transfer --facility vinelandqa --unit testrack02 --room slot05
+#   ./run_hl7 in-transit --facility vinelandqa --unit testrack02 --room slot05
+#   ./run_hl7 back-in-room
+#   ./run_hl7 discharge-order
+#   ./run_hl7 cancel-discharge-order
+#   ./run_hl7 cancel
+#   ./run_hl7 clear-admit
+set -e
+cd "$(dirname "$0")"
+if [[ -x .venv/bin/python ]]; then
+  .venv/bin/python scripts/hl7_runner.py "$@"
+else
+  python3 scripts/hl7_runner.py "$@"
+fi

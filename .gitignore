@@ -19,6 +19,11 @@ drivers/msedgedriver
 
 # Local env and IDE
 .env
+scripts/postman/.env
+scripts/postman/*.postman_environment.json
+scripts/postman/admit_state.json
+scripts/hl7/.env
+scripts/hl7/admit_state.json
 .cursor/*
 !.cursor/rules/
 !.cursor/rules/**
