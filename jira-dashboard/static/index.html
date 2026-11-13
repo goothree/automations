@@ -79,7 +79,8 @@
       color: var(--text-muted);
       font-size: 0.9rem;
     }
-    .filters select {
+    .multi-select { position: relative; }
+    .multi-select-toggle {
       background: var(--surface);
       border: 1px solid var(--border);
       color: var(--text);
@@ -87,7 +88,41 @@
       border-radius: 6px;
       font-family: inherit;
       font-size: 0.9rem;
+      cursor: pointer;
+      min-width: 8rem;
+      max-width: 16rem;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+    .multi-select-menu {
+      position: absolute;
+      z-index: 40;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 100%;
+      max-width: 22rem;
+      max-height: 16rem;
+      overflow: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.35rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    .filters .multi-select-menu label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.3rem 0.4rem;
+      border-radius: 4px;
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .filters .multi-select-menu label:hover { background: rgba(167, 139, 250, 0.12); }
+    .multi-select-menu input { accent-color: var(--accent); }
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -140,11 +175,12 @@
     .result-strip .open-link { margin-left: 0.5rem; }
     .status-cell { position: relative; }
     .status-cell .badge-status { cursor: pointer; }
+    .status-cell .badge-status::after { content: " ▾"; font-size: 0.75em; }
     .status-cell .badge-status:hover { opacity: 0.9; text-decoration: underline; }
     .status-dropdown {
       position: fixed;
       z-index: 1000;
-      min-width: 140px;
+      min-width: 220px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -169,6 +205,19 @@
     .status-dropdown-cancel { color: var(--text-muted); border-bottom: 1px solid var(--border); margin-bottom: 0.25rem; }
     .status-dropdown-cancel:hover { background: rgba(161, 161, 170, 0.15); }
     .status-dropdown-loading { padding: 0.5rem 0.75rem; color: var(--text-muted); font-size: 0.85rem; }
+    .assign-search {
+      display: block;
+      width: calc(100% - 0.5rem);
+      margin: 0.35rem 0.25rem 0.15rem;
+      padding: 0.35rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.85rem;
+    }
+    .assign-current { font-weight: 600; }
     .issue-key {
       font-family: 'JetBrains Mono', monospace;
       font-weight: 500;
@@ -277,7 +326,7 @@
     }
     .issue-modal-backdrop.open { display: flex; }
     .issue-modal {
-      width: min(720px, 100%);
+      width: min(880px, 100%);
       max-height: min(85vh, 900px);
       overflow: hidden;
       display: flex;
@@ -376,6 +425,81 @@
       background: var(--accent-dim);
       border-color: var(--accent-dim);
     }
+    .issue-modal-tabs {
+      display: flex;
+      gap: 0.25rem;
+      margin: 0 0 1rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    button.issue-modal-tab {
+      background: transparent;
+      color: var(--text-muted);
+      border: none;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      padding: 0.45rem 0.8rem;
+      margin-bottom: -1px;
+    }
+    button.issue-modal-tab:hover { filter: none; color: var(--text); }
+    button.issue-modal-tab.active {
+      color: var(--text);
+      border-bottom-color: var(--accent);
+    }
+    .attachment-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .attachment-image img,
+    .issue-comment-body img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #000;
+    }
+    .attachment-video video,
+    .issue-comment-body video {
+      display: block;
+      width: 100%;
+      max-height: 360px;
+      border-radius: 8px;
+      background: #000;
+    }
+    .attachment-file, .attachment-video a, .issue-comment-body a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .attachment-file:hover, .attachment-video a:hover, .issue-comment-body a:hover { text-decoration: underline; }
+    .attachment-file span { color: var(--text-muted); margin-left: 0.4rem; }
+    .issue-comment {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .issue-comment:last-child { border-bottom: none; }
+    .issue-comment-meta {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 0.35rem;
+    }
+    .issue-comment-body { line-height: 1.55; }
+    .issue-comment-body p { margin: 0.35rem 0; }
+    .issue-comment-body ul, .issue-comment-body ol { margin: 0.35rem 0; padding-left: 1.25rem; }
+    .issue-comment-body li > p { margin: 0; }
+    .issue-comment-body pre {
+      overflow: auto;
+      padding: 0.6rem 0.75rem;
+      background: var(--bg);
+      border-radius: 8px;
+    }
+    .issue-comment-body code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
+    }
+    .issue-comment-body .attachment-missing { color: var(--text-muted); font-style: italic; }
+    .adf-panel {
+      padding: 0.6rem 0.75rem;
+      border-left: 3px solid var(--accent);
+      background: rgba(167, 139, 250, 0.08);
+      border-radius: 0 8px 8px 0;
+    }
   </style>
 </head>
 <body>
@@ -389,22 +513,26 @@
       <a href="/calendar" class="btn-link">Test Calendar</a>
       <a id="btnCursor" class="btn-link btn-cursor disabled" href="#" onclick="openCursorLink(event, 'btnCursor')" aria-disabled="true" title="Select an issue to open in Cursor">Open in Cursor</a>
       <div class="filters">
-        <label for="filterProject">Project</label>
-        <select id="filterProject">
-          <option value="">All</option>
-        </select>
-        <label for="filterApprover">Approver</label>
-        <select id="filterApprover">
-          <option value="">All</option>
-        </select>
-        <label for="filterStatus">Status</label>
-        <select id="filterStatus">
-          <option value="">All</option>
-        </select>
-        <label for="filterRelease">Release</label>
-        <select id="filterRelease">
-          <option value="">All</option>
-        </select>
+        <label>Project</label>
+        <div class="multi-select" id="filterProject">
+          <button type="button" class="multi-select-toggle" aria-expanded="false">All</button>
+          <div class="multi-select-menu" hidden></div>
+        </div>
+        <label>Assigned</label>
+        <div class="multi-select" id="filterApprover">
+          <button type="button" class="multi-select-toggle" aria-expanded="false">All</button>
+          <div class="multi-select-menu" hidden></div>
+        </div>
+        <label>Status</label>
+        <div class="multi-select" id="filterStatus">
+          <button type="button" class="multi-select-toggle" aria-expanded="false">All</button>
+          <div class="multi-select-menu" hidden></div>
+        </div>
+        <label>Release</label>
+        <div class="multi-select" id="filterRelease">
+          <button type="button" class="multi-select-toggle" aria-expanded="false">All</button>
+          <div class="multi-select-menu" hidden></div>
+        </div>
         <button type="button" class="secondary" id="btnClearFilters" onclick="clearFilters()">Clear filters</button>
       </div>
       <span class="count" id="count"></span>
@@ -425,7 +553,7 @@
               <th>Summary</th>
               <th class="sortable" data-sort="status" onclick="setSort('status')" title="Sort by Status">Status <span class="sort-indicator"></span></th>
               <th class="sortable" data-sort="priority" onclick="setSort('priority')" title="Sort by Priority">Priority <span class="sort-indicator"></span></th>
-              <th class="sortable" data-sort="approvers" onclick="setSort('approvers')" title="Sort by Approvers">Approvers <span class="sort-indicator"></span></th>
+              <th class="sortable" data-sort="assigned" onclick="setSort('assigned')" title="Sort by Assigned">Assigned <span class="sort-indicator"></span></th>
               <th class="sortable" data-sort="test_script" onclick="setSort('test_script')" title="Sort by Test Script">Test Script <span class="sort-indicator"></span></th>
               <th class="sortable" data-sort="fix_version" onclick="setSort('fix_version')" title="Sort by Fix Version">Fix Version <span class="sort-indicator"></span></th>
               <th style="width: 100px;">Actions</th>
@@ -449,17 +577,30 @@
       </div>
       <div class="issue-modal-body" id="issueModalBody">
         <div class="issue-modal-meta" id="issueModalMeta"></div>
-        <div class="issue-modal-section">
-          <h3>Description</h3>
-          <div class="content" id="issueModalDescription">Loading…</div>
+        <div class="issue-modal-tabs" role="tablist">
+          <button type="button" class="issue-modal-tab active" id="issueModalTabDetails" role="tab" aria-selected="true" onclick="showIssueModalTab('details')">Details</button>
+          <button type="button" class="issue-modal-tab" id="issueModalTabComments" role="tab" aria-selected="false" onclick="showIssueModalTab('comments')">Comments</button>
         </div>
-        <div class="issue-modal-section" id="issueModalAcSection" style="display: none;">
-          <h3>Acceptance Criteria</h3>
-          <div class="content" id="issueModalAc"></div>
+        <div id="issueModalDetails">
+          <div class="issue-modal-section">
+            <h3>Description</h3>
+            <div class="content" id="issueModalDescription">Loading…</div>
+          </div>
+          <div class="issue-modal-section" id="issueModalAttachmentsSection" style="display: none;">
+            <h3>Attachments</h3>
+            <div class="attachment-list" id="issueModalAttachments"></div>
+          </div>
+          <div class="issue-modal-section" id="issueModalAcSection" style="display: none;">
+            <h3>Acceptance Criteria</h3>
+            <div class="content" id="issueModalAc"></div>
+          </div>
+          <div class="issue-modal-section" id="issueModalSubtasksSection" style="display: none;">
+            <h3>Subtasks</h3>
+            <ul id="issueModalSubtasks"></ul>
+          </div>
         </div>
-        <div class="issue-modal-section" id="issueModalSubtasksSection" style="display: none;">
-          <h3>Subtasks</h3>
-          <ul id="issueModalSubtasks"></ul>
+        <div id="issueModalComments" hidden>
+          <div id="issueModalCommentList" class="content empty">Loading…</div>
         </div>
       </div>
       <div class="issue-modal-footer">
@@ -473,6 +614,7 @@
     let allIssues = [];
     let issueTotal = 0;
     let versionReleaseDates = {};
+    let qaTeam = [];
     let selectedIssueKey = null;
     let sortBy = 'key';
     let sortDir = 'asc';
@@ -578,8 +720,37 @@
       document.getElementById('btnRefresh').disabled = false;
     }
 
-    function approverNames(issue) {
-      return (issue.approvers || '').split(',').map(function(name) { return name.trim(); }).filter(Boolean);
+    function assignedAccountIds(issue) {
+      return (issue.assigned_users || []).map(function(user) {
+        return user && user.accountId;
+      }).filter(Boolean);
+    }
+
+    function assignedFilterOptions(issues) {
+      const teamIds = new Set(qaTeam.map(function(user) { return user.accountId; }));
+      const people = new Map();
+      issues.forEach(function(issue) {
+        (issue.assigned_users || []).forEach(function(user) {
+          if (!user || !user.accountId || !user.name || !teamIds.has(user.accountId)) return;
+          people.set(user.accountId, user.name);
+        });
+      });
+      return [...people.entries()].sort(function(a, b) {
+        return a[1].localeCompare(b[1]);
+      }).map(function(entry) {
+        return { value: entry[0], label: entry[1] };
+      });
+    }
+
+    function normalizeAssignedSelection(values) {
+      const options = [...document.querySelectorAll('#filterApprover input')];
+      return filterList(values).map(function(value) {
+        if (options.some(function(input) { return input.value === value; })) return value;
+        const matches = options.filter(function(input) {
+          return input.parentElement.textContent.trim() === value;
+        });
+        return matches.length === 1 ? matches[0].value : '';
+      }).filter(Boolean);
     }
 
     function releaseKey(project, versionName) {
@@ -603,25 +774,99 @@
 
     function sortReleaseNames(releaseNames) {
       return releaseNames.slice().sort(function(a, b) {
+        const parsedA = parseReleaseKey(a);
+        const parsedB = parseReleaseKey(b);
+        const projectCmp = parsedA.project.localeCompare(parsedB.project);
+        if (projectCmp) return projectCmp;
         const dateA = versionReleaseDates[a] || '';
         const dateB = versionReleaseDates[b] || '';
-        if (dateA && dateB) {
-          if (dateA !== dateB) return dateB.localeCompare(dateA);
-          return a.localeCompare(b);
-        }
-        if (dateA) return -1;
-        if (dateB) return 1;
-        return a.localeCompare(b);
+        if (dateA && dateB && dateA !== dateB) return dateB.localeCompare(dateA);
+        if (dateA !== dateB) return dateA ? -1 : 1;
+        return parsedA.name.localeCompare(parsedB.name);
       });
+    }
+
+    function filterList(value) {
+      if (Array.isArray(value)) return value.map(String).filter(Boolean);
+      if (value) return [String(value)];
+      return [];
+    }
+
+    function selectedValues(id) {
+      return [...document.querySelectorAll('#' + id + ' input[type="checkbox"]:checked')].map(function(input) {
+        return input.value;
+      });
+    }
+
+    function updateMultiSelectLabel(id) {
+      const root = document.getElementById(id);
+      const button = root.querySelector('.multi-select-toggle');
+      const labels = [...root.querySelectorAll('input:checked')].map(function(input) {
+        return input.parentElement.textContent.trim();
+      });
+      button.textContent = labels.length ? labels.join(', ') : 'All';
+      button.title = labels.length ? labels.join(', ') : 'All';
+    }
+
+    function closeMultiSelects(except) {
+      document.querySelectorAll('.multi-select').forEach(function(root) {
+        if (except && root === except) return;
+        const menu = root.querySelector('.multi-select-menu');
+        menu.hidden = true;
+        root.querySelector('.multi-select-toggle').setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    function setMultiSelectOptions(id, options) {
+      const menu = document.querySelector('#' + id + ' .multi-select-menu');
+      const previously = new Set(selectedValues(id));
+      menu.innerHTML = options.map(function(option) {
+        const value = typeof option === 'string' ? option : option.value;
+        const label = typeof option === 'string' ? option : option.label;
+        const checked = previously.has(value) ? ' checked' : '';
+        return '<label><input type="checkbox" value="' + escapeHtml(value) + '"' + checked + '> ' + escapeHtml(label) + '</label>';
+      }).join('');
+      updateMultiSelectLabel(id);
+    }
+
+    function setSelectedValues(id, values) {
+      const selected = new Set(filterList(values));
+      const menu = document.querySelector('#' + id + ' .multi-select-menu');
+      selected.forEach(function(value) {
+        if (![...menu.querySelectorAll('input')].some(function(input) { return input.value === value; })) {
+          const label = document.createElement('label');
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.value = value;
+          label.appendChild(input);
+          label.appendChild(document.createTextNode(' ' + value));
+          menu.appendChild(label);
+        }
+      });
+      menu.querySelectorAll('input').forEach(function(input) {
+        input.checked = selected.has(input.value);
+      });
+      updateMultiSelectLabel(id);
+    }
+
+    function bindMultiSelect(id) {
+      const root = document.getElementById(id);
+      const button = root.querySelector('.multi-select-toggle');
+      const menu = root.querySelector('.multi-select-menu');
+      button.addEventListener('click', function(event) {
+        event.stopPropagation();
+        const willOpen = menu.hidden;
+        closeMultiSelects();
+        menu.hidden = !willOpen;
+        button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      });
+      menu.addEventListener('change', onIssueFilterChange);
+      menu.addEventListener('click', function(event) { event.stopPropagation(); });
     }
 
     function populateFilters(issues) {
       const projects = [...new Set(issues.map(i => i.project).filter(Boolean))].sort();
-      const approverSet = new Set();
-      issues.forEach(function(issue) {
-        approverNames(issue).forEach(function(name) { approverSet.add(name); });
-      });
-      const approvers = [...approverSet].sort();
+      const approvers = assignedFilterOptions(issues);
       const statuses = [...new Set(issues.map(i => i.status).filter(Boolean))].sort();
       const releaseSet = new Set();
       issues.forEach(function(issue) {
@@ -632,50 +877,60 @@
         });
       });
       const releases = sortReleaseNames([...releaseSet]);
-      const projectSel = document.getElementById('filterProject');
-      const approverSel = document.getElementById('filterApprover');
-      const statusSel = document.getElementById('filterStatus');
-      const releaseSel = document.getElementById('filterRelease');
-      projectSel.innerHTML = '<option value="">All</option>' + projects.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
-      approverSel.innerHTML = '<option value="">All</option>' + approvers.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join('');
-      statusSel.innerHTML = '<option value="">All</option>' + statuses.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
-      releaseSel.innerHTML = '<option value="">All</option>' + releases.map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
-      projectSel.onchange = renderTable;
-      approverSel.onchange = renderTable;
-      statusSel.onchange = renderTable;
-      releaseSel.onchange = renderTable;
+      setMultiSelectOptions('filterProject', projects);
+      setMultiSelectOptions('filterApprover', approvers);
+      setMultiSelectOptions('filterStatus', statuses);
+      setMultiSelectOptions('filterRelease', releases);
+    }
+
+    var ISSUE_FILTERS_KEY = 'jira-dashboard-issue-filters';
+
+    function readIssueFilters() {
+      try {
+        var raw = sessionStorage.getItem(ISSUE_FILTERS_KEY);
+        if (!raw) return null;
+        var state = JSON.parse(raw);
+        return state && typeof state === 'object' ? state : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveIssueFilters() {
+      try {
+        sessionStorage.setItem(ISSUE_FILTERS_KEY, JSON.stringify(getFilterState()));
+      } catch (e) {}
+    }
+
+    function onIssueFilterChange() {
+      ['filterProject', 'filterApprover', 'filterStatus', 'filterRelease'].forEach(updateMultiSelectLabel);
+      saveIssueFilters();
+      if (window.location.search) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+      renderTable();
     }
 
     function getFilterState() {
       return {
-        project: document.getElementById('filterProject').value,
-        approver: document.getElementById('filterApprover').value,
-        status: document.getElementById('filterStatus').value,
-        release: document.getElementById('filterRelease').value,
+        project: selectedValues('filterProject'),
+        approver: selectedValues('filterApprover'),
+        status: selectedValues('filterStatus'),
+        release: selectedValues('filterRelease'),
       };
     }
 
     function restoreFilterState(state) {
       if (!state) return;
-      const mapping = [
-        ['filterProject', state.project],
-        ['filterApprover', state.approver],
-        ['filterStatus', state.status],
-        ['filterRelease', state.release],
-      ];
-      mapping.forEach(function(entry) {
-        const selectId = entry[0];
-        const value = entry[1] || '';
-        if (value) {
-          setFilterValue(selectId, value);
-        } else {
-          document.getElementById(selectId).value = '';
-        }
-      });
+      setSelectedValues('filterProject', state.project);
+      setSelectedValues('filterApprover', normalizeAssignedSelection(state.approver));
+      setSelectedValues('filterStatus', state.status);
+      setSelectedValues('filterRelease', state.release);
     }
 
     function clearFilters() {
-      restoreFilterState({ project: '', approver: '', status: '', release: '' });
+      restoreFilterState({ project: [], approver: [], status: [], release: [] });
+      saveIssueFilters();
       if (window.location.search) {
         window.history.replaceState({}, '', window.location.pathname);
       }
@@ -689,19 +944,22 @@
     }
 
     function getFilteredIssues() {
-      const project = document.getElementById('filterProject').value;
-      const approver = document.getElementById('filterApprover').value;
-      const status = document.getElementById('filterStatus').value;
-      const release = document.getElementById('filterRelease').value;
+      const projects = selectedValues('filterProject');
+      const approvers = selectedValues('filterApprover');
+      const statuses = selectedValues('filterStatus');
+      const releases = selectedValues('filterRelease');
       return allIssues.filter(i => {
-        if (project && i.project !== project) return false;
-        if (approver && !approverNames(i).includes(approver)) return false;
-        if (status && i.status !== status) return false;
-        if (release) {
-          const parsed = parseReleaseKey(release);
-          if (parsed.project && i.project !== parsed.project) return false;
+        if (projects.length && !projects.includes(i.project)) return false;
+        if (approvers.length && !assignedAccountIds(i).some(function(id) { return approvers.includes(id); })) return false;
+        if (statuses.length && !statuses.includes(i.status)) return false;
+        if (releases.length) {
           const versions = issueVersionNames(i);
-          if (!versions.includes(parsed.name)) return false;
+          const matches = releases.some(function(release) {
+            const parsed = parseReleaseKey(release);
+            if (parsed.project && i.project !== parsed.project) return false;
+            return versions.includes(parsed.name);
+          });
+          if (!matches) return false;
         }
         return true;
       });
@@ -762,6 +1020,9 @@
       const el = document.getElementById('statusDropdown');
       el.style.display = 'none';
       statusDropdownIssueKey = null;
+      assignState = null;
+      clearTimeout(assignSearchTimer);
+      assignSearchRequest += 1;
       if (statusDropdownClose) {
         document.removeEventListener('click', statusDropdownClose, true);
         statusDropdownClose = null;
@@ -802,7 +1063,9 @@
         statusDropdownTransitions = data.transitions;
         dropdown.innerHTML = '<button type="button" class="status-dropdown-option status-dropdown-cancel">Cancel</button>' +
           data.transitions.map(function(t) {
-            return '<button type="button" class="status-dropdown-option" data-id="' + t.id + '">' + escapeHtml(t.name) + '</button>';
+            var destination = t.to || t.name;
+            var label = t.name && t.name !== destination ? (t.name + ' → ' + destination) : destination;
+            return '<button type="button" class="status-dropdown-option" data-id="' + t.id + '">' + escapeHtml(label) + '</button>';
           }).join('');
         dropdown.querySelectorAll('.status-dropdown-option').forEach(function(btn) {
           btn.onclick = function(e) {
@@ -812,8 +1075,8 @@
               return;
             }
             const id = parseInt(btn.getAttribute('data-id'), 10);
-            const t = statusDropdownTransitions.find(function(tr) { return tr.id === id; });
-            applyTransition(issueKey, id, t ? t.to : '');
+            const t = statusDropdownTransitions.find(function(tr) { return String(tr.id) === String(id); });
+            applyTransition(issueKey, id, t ? (t.to || t.name) : '');
             closeStatusDropdown();
           };
         });
@@ -835,16 +1098,238 @@
           return;
         }
         const issue = allIssues.find(function(i) { return i.key === issueKey; });
-        if (issue) issue.status = newStatusName;
+        if (issue && newStatusName) issue.status = newStatusName;
         renderTable();
+        var stillVisible = getFilteredIssues().some(function(i) { return i.key === issueKey; });
+        var message = issueKey + ' is now ' + (newStatusName || 'updated');
+        if (!stillVisible) message += '. It is hidden by the current filters.';
+        showResult(true, message);
       } catch (e) {
         showResult(false, 'Status update failed: ' + e.message);
       }
     }
 
+    let assignState = null;
+    let assignSearchTimer = null;
+    let assignSearchRequest = 0;
+
+    function renderAssignChoices(searchUsers) {
+      const choices = document.getElementById('assignChoices');
+      if (!choices || !assignState) return;
+      const selectedIds = new Set(assignState.users.map(function(user) { return user.accountId; }));
+      const rows = assignState.users.slice();
+      (searchUsers || []).forEach(function(user) {
+        if (!selectedIds.has(user.accountId)) rows.push(user);
+      });
+      let html = '';
+      if (assignState.mode === 'assignee') {
+        html += '<button type="button" class="status-dropdown-option" data-clear="1">Unassigned</button>';
+      } else if (!assignState.users.length) {
+        html += '<span class="status-dropdown-loading">No approvers yet</span>';
+      }
+      html += rows.map(function(user) {
+        const current = selectedIds.has(user.accountId);
+        const mark = assignState.mode === 'approvers' && current ? '✓ ' : '';
+        return '<button type="button" class="status-dropdown-option' + (current ? ' assign-current' : '') + '" data-account-id="' + escapeHtml(user.accountId) + '" data-name="' + escapeHtml(user.name).replace(/"/g, '&quot;') + '">' + mark + escapeHtml(user.name) + '</button>';
+      }).join('');
+      if (!rows.length && assignState.mode === 'assignee') {
+        html += '<span class="status-dropdown-loading">Type a name to search</span>';
+      } else if (searchUsers && !searchUsers.length && (document.getElementById('assignSearch').value || '').trim().length >= 2) {
+        html += '<span class="status-dropdown-loading">No matching people</span>';
+      } else if (!rows.length) {
+        html += '<span class="status-dropdown-loading">Type a name to search</span>';
+      }
+      choices.innerHTML = html;
+      choices.querySelectorAll('button').forEach(function(btn) {
+        btn.onclick = function(e) {
+          e.stopPropagation();
+          if (btn.getAttribute('data-clear') === '1') {
+            applyAssignment(assignState.issueKey, []);
+            return;
+          }
+          const accountId = btn.getAttribute('data-account-id');
+          const name = btn.getAttribute('data-name');
+          if (assignState.mode === 'assignee') {
+            applyAssignment(assignState.issueKey, [{ accountId: accountId, name: name }]);
+            return;
+          }
+          const next = assignState.users.slice();
+          const index = next.findIndex(function(user) { return user.accountId === accountId; });
+          if (index === -1) next.push({ accountId: accountId, name: name });
+          else next.splice(index, 1);
+          applyAssignment(assignState.issueKey, next, true);
+        };
+      });
+    }
+
+    async function searchAssignUsers(issueKey, query) {
+      const requestId = ++assignSearchRequest;
+      const response = await fetch('/api/issues/' + encodeURIComponent(issueKey) + '/users?q=' + encodeURIComponent(query));
+      const data = await response.json();
+      if (requestId !== assignSearchRequest || !assignState || assignState.issueKey !== issueKey) return;
+      if (data.error) {
+        const choices = document.getElementById('assignChoices');
+        if (choices) choices.innerHTML = '<span class="status-dropdown-loading">' + escapeHtml(data.error) + '</span>';
+        return;
+      }
+      renderAssignChoices(data.users || []);
+    }
+
+    function openAssignDropdown(ev, issueKey) {
+      ev.stopPropagation();
+      ev.preventDefault();
+      closeStatusDropdown();
+      const issue = allIssues.find(function(item) { return item.key === issueKey; });
+      if (!issue) return;
+      assignState = {
+        issueKey: issueKey,
+        mode: issue.assignment || 'approvers',
+        users: (issue.assigned_users || []).map(function(user) {
+          return { accountId: user.accountId, name: user.name };
+        }),
+      };
+      const dropdown = document.getElementById('statusDropdown');
+      const triggerEl = ev.currentTarget;
+      const rect = triggerEl.getBoundingClientRect();
+      dropdown.style.left = rect.left + 'px';
+      dropdown.style.top = (rect.bottom + 4) + 'px';
+      dropdown.innerHTML = '<input id="assignSearch" class="assign-search" type="search" placeholder="Search people" autocomplete="off">' +
+        '<div id="assignChoices"></div>';
+      dropdown.style.display = 'block';
+      statusDropdownClose = function(e) {
+        var target = e && e.target;
+        if (!target) return;
+        if (dropdown.contains(target) || (triggerEl && triggerEl.contains(target))) return;
+        closeStatusDropdown();
+      };
+      setTimeout(function() { document.addEventListener('click', statusDropdownClose, true); }, 0);
+      const input = document.getElementById('assignSearch');
+      input.addEventListener('click', function(e) { e.stopPropagation(); });
+      input.addEventListener('keydown', function(e) { e.stopPropagation(); });
+      input.addEventListener('input', function() {
+        clearTimeout(assignSearchTimer);
+        const query = input.value.trim();
+        if (query.length < 2) {
+          assignSearchRequest += 1;
+          renderAssignChoices([]);
+          return;
+        }
+        assignSearchTimer = setTimeout(function() { searchAssignUsers(issueKey, query); }, 250);
+      });
+      renderAssignChoices([]);
+      input.focus();
+    }
+
+    async function applyAssignment(issueKey, users, keepOpen) {
+      try {
+        const response = await fetch('/api/issues/' + encodeURIComponent(issueKey) + '/assignment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ account_ids: users.map(function(user) { return user.accountId; }) }),
+        });
+        const data = await response.json();
+        if (data.error) {
+          showResult(false, 'Assignment update failed: ' + data.error);
+          return;
+        }
+        const issue = allIssues.find(function(item) { return item.key === issueKey; });
+        const label = users.map(function(user) { return user.name; }).join(', ');
+        if (issue) {
+          issue.assigned_users = users.slice();
+          issue.assigned = label;
+        }
+        if (assignState && assignState.issueKey === issueKey) assignState.users = users.slice();
+        renderTable();
+        const stillVisible = getFilteredIssues().some(function(item) { return item.key === issueKey; });
+        let message = issueKey + (label ? ' assigned to ' + label : ' is unassigned');
+        if (!stillVisible) message += '. It is hidden by the current filters.';
+        showResult(true, message);
+        if (keepOpen && document.getElementById('assignChoices')) {
+          const query = (document.getElementById('assignSearch').value || '').trim();
+          if (query.length >= 2) searchAssignUsers(issueKey, query);
+          else renderAssignChoices([]);
+        } else {
+          closeStatusDropdown();
+        }
+      } catch (e) {
+        showResult(false, 'Assignment update failed: ' + e.message);
+      }
+    }
+
     function closeIssuePopup() {
+      document.querySelectorAll('#issueModalBackdrop video').forEach(function(video) { video.pause(); });
       document.getElementById('issueModalBackdrop').classList.remove('open');
       document.body.style.overflow = '';
+    }
+
+    function showIssueModalTab(name) {
+      const details = name === 'details';
+      document.querySelectorAll('#issueModalBackdrop video').forEach(function(video) { video.pause(); });
+      document.getElementById('issueModalDetails').hidden = !details;
+      document.getElementById('issueModalComments').hidden = details;
+      document.getElementById('issueModalTabDetails').classList.toggle('active', details);
+      document.getElementById('issueModalTabComments').classList.toggle('active', !details);
+      document.getElementById('issueModalTabDetails').setAttribute('aria-selected', details ? 'true' : 'false');
+      document.getElementById('issueModalTabComments').setAttribute('aria-selected', details ? 'false' : 'true');
+    }
+
+    function attachmentUrl(issueKey, attachmentId) {
+      return '/api/issues/' + encodeURIComponent(issueKey) + '/attachments/' + encodeURIComponent(attachmentId);
+    }
+
+    function formatBytes(size) {
+      const bytes = Number(size) || 0;
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function renderAttachments(issueKey, attachments) {
+      const section = document.getElementById('issueModalAttachmentsSection');
+      const root = document.getElementById('issueModalAttachments');
+      if (!attachments || !attachments.length) {
+        section.style.display = 'none';
+        root.innerHTML = '';
+        return;
+      }
+      section.style.display = 'block';
+      root.innerHTML = attachments.map(function(item) {
+        const url = attachmentUrl(issueKey, item.id);
+        const name = escapeHtml(item.filename || 'Attachment');
+        if (item.kind === 'image') {
+          return '<a class="attachment-image" href="' + url + '" target="_blank" rel="noopener"><img src="' + url + '" alt="' + name + '"></a>';
+        }
+        if (item.kind === 'video') {
+          return '<div class="attachment-video"><video controls preload="none" src="' + url + '"></video><a href="' + url + '" target="_blank" rel="noopener">' + name + '</a></div>';
+        }
+        return '<a class="attachment-file" href="' + url + '" target="_blank" rel="noopener">' + name + '<span>' + formatBytes(item.size) + '</span></a>';
+      }).join('');
+    }
+
+    function formatCommentDate(value) {
+      if (!value) return '';
+      const normalized = String(value).replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+      const date = new Date(normalized);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    }
+
+    function renderComments(comments) {
+      const list = document.getElementById('issueModalCommentList');
+      const tab = document.getElementById('issueModalTabComments');
+      const count = (comments || []).length;
+      tab.textContent = count ? 'Comments (' + count + ')' : 'Comments';
+      if (!count) {
+        list.className = 'content empty';
+        list.textContent = 'No comments.';
+        return;
+      }
+      list.className = '';
+      list.innerHTML = comments.map(function(comment) {
+        return '<article class="issue-comment"><div class="issue-comment-meta">'
+          + escapeHtml(comment.author || 'Unknown') + ' · ' + escapeHtml(formatCommentDate(comment.created))
+          + '</div><div class="issue-comment-body">' + (comment.html || '') + '</div></article>';
+      }).join('');
     }
 
     function closeIssuePopupOnBackdrop(event) {
@@ -867,7 +1352,7 @@
       ];
       if (issue.link) lines.push('Jira: ' + issue.link);
       if (issue.status) lines.push('Status: ' + issue.status);
-      if (issue.approvers) lines.push('Approvers: ' + issue.approvers);
+      if (issue.assigned) lines.push('Assigned: ' + issue.assigned);
       if (issue.priority) lines.push('Priority: ' + issue.priority);
       if (issue.fix_version) lines.push('Fix version: ' + issue.fix_version);
       lines.push('');
@@ -927,12 +1412,17 @@
       const backdrop = document.getElementById('issueModalBackdrop');
       const acSection = document.getElementById('issueModalAcSection');
       const subtasksSection = document.getElementById('issueModalSubtasksSection');
+      showIssueModalTab('details');
+      document.getElementById('issueModalTabComments').textContent = 'Comments';
+      document.getElementById('issueModalCommentList').className = 'content empty';
+      document.getElementById('issueModalCommentList').textContent = 'Loading…';
+      renderAttachments(issue.key, []);
 
       document.getElementById('issueModalKey').textContent = issue.key;
       document.getElementById('issueModalTitle').textContent = issue.summary || 'Loading…';
       document.getElementById('issueModalMeta').innerHTML = [
         issue.status ? '<span>Status: ' + escapeHtml(issue.status) + '</span>' : '',
-        issue.approvers ? '<span>Approvers: ' + escapeHtml(issue.approvers) + '</span>' : '',
+        issue.assigned ? '<span>Assigned: ' + escapeHtml(issue.assigned) + '</span>' : '',
         issue.priority ? '<span>Priority: ' + escapeHtml(issue.priority) + '</span>' : '',
         issue.fix_version ? '<span>Fix Version: ' + escapeHtml(issue.fix_version) + '</span>' : '',
       ].filter(Boolean).join('');
@@ -951,11 +1441,15 @@
         const data = await r.json();
         if (data.error) {
           setModalSection('issueModalDescription', '', data.error);
+          renderComments([]);
+          document.getElementById('issueModalCommentList').textContent = data.error;
           updateCursorLinks(issue, { key: issue.key, summary: issue.summary, description: data.error });
           return;
         }
         document.getElementById('issueModalTitle').textContent = data.summary || issue.summary || '—';
         setModalSection('issueModalDescription', data.description, 'No description.');
+        renderAttachments(data.key || issue.key, data.attachments || []);
+        renderComments(data.comments || []);
 
         if ((data.acceptance_criteria || '').trim()) {
           setModalSection('issueModalAc', data.acceptance_criteria, '');
@@ -972,6 +1466,8 @@
         updateCursorLinks(issue, data);
       } catch (e) {
         setModalSection('issueModalDescription', '', 'Failed to load: ' + e.message);
+        renderComments([]);
+        document.getElementById('issueModalCommentList').textContent = 'Failed to load: ' + e.message;
         updateCursorLinks(issue, { key: issue.key, summary: issue.summary, description: 'Failed to load ticket details: ' + e.message });
       }
     }
@@ -1002,9 +1498,9 @@
         <tr class="issue-row" data-issue-key="${escapeHtml(i.key)}" onclick="selectIssue(this.getAttribute('data-issue-key'))">
           <td class="issue-key"><a href="#" data-issue-key="${escapeHtml(i.key)}" onclick="openIssuePopup(event, this.getAttribute('data-issue-key'))">${escapeHtml(i.key)}</a></td>
           <td class="summary">${escapeHtml(i.summary)}</td>
-          <td class="status-cell" onclick="event.stopPropagation()"><span class="badge badge-status" data-issue-key="${escapeHtml(i.key)}" onclick="openStatusDropdown(event, this.getAttribute('data-issue-key'))">${escapeHtml(i.status || '—')}</span></td>
+          <td class="status-cell" onclick="event.stopPropagation()"><span class="badge badge-status" title="Change status" data-issue-key="${escapeHtml(i.key)}" onclick="openStatusDropdown(event, this.getAttribute('data-issue-key'))">${escapeHtml(i.status || '—')}</span></td>
           <td><span class="badge badge-priority">${escapeHtml(i.priority || '—')}</span></td>
-          <td>${escapeHtml(i.approvers || '—')}</td>
+          <td class="status-cell" onclick="event.stopPropagation()"><span class="badge badge-status" title="Change assigned" data-issue-key="${escapeHtml(i.key)}" onclick="openAssignDropdown(event, this.getAttribute('data-issue-key'))">${escapeHtml(i.assigned || '—')}</span></td>
           <td class="test-script-cell">${(i.test_script && (i.test_script.startsWith('http') ? '<a href="' + escapeHtml(i.test_script) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Link</a>' : escapeHtml(i.test_script))) || '—'}</td>
           <td>${escapeHtml(i.fix_version || '—')}</td>
           <td onclick="event.stopPropagation()"><a class="btn-link" href="${escapeHtml(i.link)}" target="_blank" rel="noopener">View in Jira</a></td>
@@ -1021,27 +1517,15 @@
       strip.textContent = message;
     }
 
-    function setFilterValue(selectId, value) {
-      if (!value) return;
-      const sel = document.getElementById(selectId);
-      if (![...sel.options].some(option => option.value === value)) {
-        const opt = document.createElement('option');
-        opt.value = value;
-        opt.textContent = value;
-        sel.appendChild(opt);
-      }
-      sel.value = value;
-    }
-
     function applyFiltersFromUrl() {
       const params = new URLSearchParams(window.location.search);
       const project = params.get('project') || '';
       const releaseName = params.get('release') || '';
-      setFilterValue('filterProject', project);
+      if (project) setSelectedValues('filterProject', [project]);
       if (project && releaseName) {
-        setFilterValue('filterRelease', releaseKey(project, releaseName));
+        setSelectedValues('filterRelease', [releaseKey(project, releaseName)]);
       } else if (releaseName) {
-        setFilterValue('filterRelease', releaseName);
+        setSelectedValues('filterRelease', [releaseName]);
       }
     }
 
@@ -1074,11 +1558,18 @@
         allIssues = data.issues || [];
         issueTotal = data.total || allIssues.length;
         versionReleaseDates = data.version_release_dates || {};
+        qaTeam = data.qa_team || [];
         const hint = document.getElementById('jqlHint');
         if (hint) hint.style.display = data.using_team_jql ? 'inline' : 'none';
         populateFilters(allIssues);
         if (!initialIssuesLoadDone) {
-          applyFiltersFromUrl();
+          var params = new URLSearchParams(window.location.search);
+          if (params.get('project') || params.get('release')) {
+            applyFiltersFromUrl();
+            saveIssueFilters();
+          } else {
+            restoreFilterState(readIssueFilters());
+          }
         } else {
           restoreFilterState(savedFilters);
         }
@@ -1094,6 +1585,12 @@
         document.getElementById('btnRefresh').disabled = false;
       }
     }
+
+    ['filterProject', 'filterApprover', 'filterStatus', 'filterRelease'].forEach(bindMultiSelect);
+    document.addEventListener('click', function() { closeMultiSelects(); });
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') closeMultiSelects();
+    });
 
     loadIssues();
   </script>

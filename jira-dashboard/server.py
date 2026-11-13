@@ -6,21 +6,26 @@ Run from project root: ./run_jira_dashboard  or  python jira-dashboard/server.py
 import os
 import sys
 from pathlib import Path
+from urllib.parse import quote
 
 DASHBOARD_DIR = Path(__file__).resolve().parent
 if str(DASHBOARD_DIR) not in sys.path:
     sys.path.insert(0, str(DASHBOARD_DIR))
 
-from flask import Flask, jsonify, request, send_from_directory, make_response
+from flask import Flask, Response, jsonify, request, send_from_directory, make_response
 from flask_cors import CORS
 
 from jira_client import (
     fetch_issues,
     fetch_unreleased_releases,
     fetch_calendar_releases,
+    fetch_qa_completion_counts,
     get_issue_full,
+    open_issue_attachment,
     get_issue_transitions,
     set_issue_transition,
+    search_issue_users,
+    set_issue_assignment,
 )
 from calendar_store import (
     list_custom_events,
@@ -68,10 +73,66 @@ def issue_detail(issue_key):
     return jsonify(result)
 
 
+@app.route("/api/issues/<issue_key>/attachments/<attachment_id>")
+def issue_attachment(issue_key, attachment_id):
+    """Stream an image, video, or file attached to this issue."""
+    result = open_issue_attachment(issue_key, attachment_id, request.headers.get("Range"))
+    if "error" in result:
+        return jsonify(result), 404
+    upstream = result["response"]
+    meta = result["meta"]
+
+    def generate():
+        try:
+            for chunk in upstream.iter_content(chunk_size=64 * 1024):
+                if chunk:
+                    yield chunk
+        finally:
+            upstream.close()
+
+    headers = {
+        "Content-Type": upstream.headers.get("Content-Type") or meta.get("mime_type") or "application/octet-stream",
+        "Accept-Ranges": upstream.headers.get("Accept-Ranges") or "bytes",
+        "Cache-Control": "private, max-age=300",
+    }
+    if upstream.headers.get("Content-Length"):
+        headers["Content-Length"] = upstream.headers["Content-Length"]
+    if upstream.headers.get("Content-Range"):
+        headers["Content-Range"] = upstream.headers["Content-Range"]
+    disposition = "inline" if meta.get("kind") in ("image", "video") else "attachment"
+    filename = quote(meta.get("filename") or "attachment")
+    headers["Content-Disposition"] = f"{disposition}; filename*=UTF-8''{filename}"
+    return Response(generate(), status=upstream.status_code, headers=headers)
+
+
 @app.route("/api/issues/<issue_key>/transitions")
 def issue_transitions(issue_key):
     """Return available workflow transitions for an issue (for status change dropdown)."""
     result = get_issue_transitions(issue_key)
+    if "error" in result:
+        return jsonify(result), 400
+    return jsonify(result)
+
+
+@app.route("/api/issues/<issue_key>/users")
+def issue_users(issue_key):
+    """Search people who can be set as assignee or approver on this issue."""
+    result = search_issue_users(issue_key, request.args.get("q") or "")
+    if "error" in result:
+        return jsonify(result), 400
+    return jsonify(result)
+
+
+@app.route("/api/issues/<issue_key>/assignment", methods=["POST"])
+def issue_assignment(issue_key):
+    """Set assignee or approvers. Body: {"account_ids": ["..."]}."""
+    data = request.get_json() or {}
+    account_ids = data.get("account_ids")
+    if account_ids is None:
+        account_ids = []
+    if not isinstance(account_ids, list):
+        return jsonify({"error": "account_ids must be a list"}), 400
+    result = set_issue_assignment(issue_key, account_ids)
     if "error" in result:
         return jsonify(result), 400
     return jsonify(result)
@@ -115,6 +176,18 @@ def calendar_data():
         "releases": releases.get("releases", []),
         "custom": list_custom_events(),
     })
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
+
+
+@app.route("/api/calendar/completions")
+def calendar_completions():
+    """Tickets that finished QA on each day in the requested range."""
+    result = fetch_qa_completion_counts(request.args.get("start") or "", request.args.get("end") or "")
+    if "error" in result:
+        print("Jira completion count error:", result["error"], file=sys.stderr)
+        return jsonify(result), 400
+    response = jsonify(result)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return response
 

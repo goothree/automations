@@ -153,7 +153,43 @@
       color: var(--text-muted);
       font-size: 0.9rem;
     }
-    .filters select,
+    .multi-select { position: relative; }
+    .multi-select-toggle {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      min-width: 8rem;
+      max-width: 16rem;
+      text-align: left;
+    }
+    .multi-select-menu {
+      position: absolute;
+      z-index: 40;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.35rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    .filters .multi-select-menu label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.3rem 0.4rem;
+      border-radius: 4px;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .filters .multi-select-menu label:hover { background: rgba(167, 139, 250, 0.12); }
+    .multi-select-menu input { accent-color: var(--accent); }
     .filters input[type="date"] {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -178,12 +214,14 @@
       <a href="/" class="btn-link">Team Dashboard</a>
       <a href="/calendar" class="btn-link">Test Calendar</a>
       <div class="filters">
-        <label for="filterProject">Project</label>
-        <select id="filterProject">
-          <option value="">All</option>
-          <option value="IDA">IDA</option>
-          <option value="RDAR">RDAR</option>
-        </select>
+        <label>Project</label>
+        <div class="multi-select" id="filterProject">
+          <button type="button" class="multi-select-toggle" aria-expanded="false">All</button>
+          <div class="multi-select-menu" hidden>
+            <label><input type="checkbox" value="IDA"> IDA</label>
+            <label><input type="checkbox" value="RDAR"> RDAR</label>
+          </div>
+        </div>
         <label for="filterDateFrom">From</label>
         <input type="date" id="filterDateFrom" />
         <label for="filterDateTo">To</label>
@@ -317,13 +355,32 @@
       return isNaN(date.getTime()) ? null : date;
     }
 
+    function filterList(value) {
+      if (Array.isArray(value)) return value.map(String).filter(Boolean);
+      if (value) return [String(value)];
+      return [];
+    }
+
+    function selectedProjects() {
+      return [...document.querySelectorAll('#filterProject input[type="checkbox"]:checked')].map(function(input) {
+        return input.value;
+      });
+    }
+
+    function updateProjectLabel() {
+      var button = document.querySelector('#filterProject .multi-select-toggle');
+      var labels = selectedProjects();
+      button.textContent = labels.length ? labels.join(', ') : 'All';
+      button.title = button.textContent;
+    }
+
     function getFilteredReleases() {
-      var project = document.getElementById('filterProject').value;
+      var projects = selectedProjects();
       var dateFrom = parseInputDate(document.getElementById('filterDateFrom').value);
       var dateTo = parseInputDate(document.getElementById('filterDateTo').value);
 
       return sortReleases(allReleases.filter(function(release) {
-        if (project && release.project !== project) return false;
+        if (projects.length && projects.indexOf(release.project) === -1) return false;
 
         var releaseDate = parseReleaseDate(release.release_date);
         if (dateFrom || dateTo) {
@@ -390,7 +447,7 @@
 
     function getReleaseFilterState() {
       return {
-        project: document.getElementById('filterProject').value,
+        project: selectedProjects(),
         dateFrom: document.getElementById('filterDateFrom').value,
         dateTo: document.getElementById('filterDateTo').value,
       };
@@ -398,9 +455,62 @@
 
     function restoreReleaseFilterState(state) {
       if (!state) return;
-      document.getElementById('filterProject').value = state.project || '';
+      var selected = new Set(filterList(state.project));
+      document.querySelectorAll('#filterProject input[type="checkbox"]').forEach(function(input) {
+        input.checked = selected.has(input.value);
+      });
+      updateProjectLabel();
       document.getElementById('filterDateFrom').value = state.dateFrom || '';
       document.getElementById('filterDateTo').value = state.dateTo || '';
+    }
+
+    var RELEASE_FILTERS_KEY = 'jira-dashboard-release-filters';
+
+    function readReleaseFilters() {
+      try {
+        var raw = sessionStorage.getItem(RELEASE_FILTERS_KEY);
+        if (!raw) return null;
+        var state = JSON.parse(raw);
+        return state && typeof state === 'object' ? state : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveReleaseFilters() {
+      try {
+        sessionStorage.setItem(RELEASE_FILTERS_KEY, JSON.stringify(getReleaseFilterState()));
+      } catch (e) {}
+    }
+
+    function onReleaseFilterChange() {
+      updateProjectLabel();
+      saveReleaseFilters();
+      updateView();
+    }
+
+    function bindProjectFilter() {
+      var root = document.getElementById('filterProject');
+      var button = root.querySelector('.multi-select-toggle');
+      var menu = root.querySelector('.multi-select-menu');
+      button.addEventListener('click', function(event) {
+        event.stopPropagation();
+        var willOpen = menu.hidden;
+        menu.hidden = !willOpen;
+        button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      });
+      menu.addEventListener('change', onReleaseFilterChange);
+      menu.addEventListener('click', function(event) { event.stopPropagation(); });
+      document.addEventListener('click', function() {
+        menu.hidden = true;
+        button.setAttribute('aria-expanded', 'false');
+      });
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+          menu.hidden = true;
+          button.setAttribute('aria-expanded', 'false');
+        }
+      });
     }
 
     function loadReleases() {
@@ -430,6 +540,7 @@
           }
           allReleases = result.data.releases || [];
           if (savedFilters) restoreReleaseFilterState(savedFilters);
+          else restoreReleaseFilterState(readReleaseFilters());
           sortBy = savedSortBy;
           sortDir = savedSortDir;
           initialReleasesLoadDone = true;
@@ -448,9 +559,9 @@
         });
     }
 
-    document.getElementById('filterProject').onchange = updateView;
-    document.getElementById('filterDateFrom').onchange = updateView;
-    document.getElementById('filterDateTo').onchange = updateView;
+    bindProjectFilter();
+    document.getElementById('filterDateFrom').onchange = onReleaseFilterChange;
+    document.getElementById('filterDateTo').onchange = onReleaseFilterChange;
 
     loadReleases();
   </script>

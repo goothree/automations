@@ -173,17 +173,32 @@
       background: rgba(255, 255, 255, 0.02);
     }
     .day-cell {
+      position: relative;
       min-height: 120px;
       height: auto;
       border-right: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
-      padding: 0.45rem;
+      padding: 0.45rem 0.45rem 1.45rem;
       background: rgba(255, 255, 255, 0.01);
       cursor: cell;
       overflow: visible;
       display: flex;
       flex-direction: column;
       align-self: stretch;
+    }
+    .day-completions {
+      position: absolute;
+      right: 0.4rem;
+      bottom: 0.3rem;
+      min-width: 1.2rem;
+      padding: 0.05rem 0.35rem;
+      border-radius: 999px;
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      line-height: 1.3;
+      color: #142006;
+      background: #c6f135;
     }
     .day-cell:nth-child(7n) { border-right: none; }
     .day-cell.other-month { opacity: 0.45; }
@@ -421,9 +436,9 @@
       <a href="/" class="btn-link">Team Dashboard</a>
       <a href="/releases" class="btn-link">Releases</a>
       <div class="filters">
-        <label><input type="checkbox" id="showIda" checked onchange="renderCalendar()" /> IDA releases</label>
-        <label><input type="checkbox" id="showRdar" checked onchange="renderCalendar()" /> RDAR releases</label>
-        <label><input type="checkbox" id="showCustom" checked onchange="renderCalendar()" /> Custom events</label>
+        <label><input type="checkbox" id="showIda" checked onchange="onCalendarFilterChange()" /> IDA releases</label>
+        <label><input type="checkbox" id="showRdar" checked onchange="onCalendarFilterChange()" /> RDAR releases</label>
+        <label><input type="checkbox" id="showCustom" checked onchange="onCalendarFilterChange()" /> Custom events</label>
       </div>
       <span class="count" id="count"></span>
     </div>
@@ -514,8 +529,12 @@
   <script>
     var releases = [];
     var customEvents = [];
+    var completionCounts = {};
+    var loadedCompletionKey = '';
+    var completionToken = 0;
     var viewYear;
     var viewMonth;
+    var COMPLETION_PROJECTS = ['IDA', 'RDAR', 'QA'];
     var editingCustomId = null;
 
     function escapeHtml(text) {
@@ -623,6 +642,42 @@
       return '/?' + params.toString();
     }
 
+    var CALENDAR_FILTERS_KEY = 'jira-dashboard-calendar-filters';
+
+    function readCalendarFilters() {
+      try {
+        var raw = sessionStorage.getItem(CALENDAR_FILTERS_KEY);
+        if (!raw) return null;
+        var state = JSON.parse(raw);
+        return state && typeof state === 'object' ? state : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveCalendarFilters() {
+      try {
+        sessionStorage.setItem(CALENDAR_FILTERS_KEY, JSON.stringify({
+          showIda: document.getElementById('showIda').checked,
+          showRdar: document.getElementById('showRdar').checked,
+          showCustom: document.getElementById('showCustom').checked,
+        }));
+      } catch (e) {}
+    }
+
+    function restoreCalendarFilters() {
+      var state = readCalendarFilters();
+      if (!state) return;
+      if (typeof state.showIda === 'boolean') document.getElementById('showIda').checked = state.showIda;
+      if (typeof state.showRdar === 'boolean') document.getElementById('showRdar').checked = state.showRdar;
+      if (typeof state.showCustom === 'boolean') document.getElementById('showCustom').checked = state.showCustom;
+    }
+
+    function onCalendarFilterChange() {
+      saveCalendarFilters();
+      renderCalendar();
+    }
+
     function visibleReleases() {
       return releases.filter(function(release) {
         if (release.project === 'IDA' && !document.getElementById('showIda').checked) return false;
@@ -726,6 +781,18 @@
         if (!inMonth) classes.push('other-month');
         if (dateStr === todayStr) classes.push('today');
 
+        var finished = completionCounts[dateStr] || {};
+        var finishedTotal = COMPLETION_PROJECTS.reduce(function(sum, project) {
+          return sum + (finished[project] || 0);
+        }, 0);
+        var finishedTitle = COMPLETION_PROJECTS.filter(function(project) {
+          return finished[project];
+        }).map(function(project) {
+          return project + ' - ' + finished[project];
+        }).join('\n');
+        var finishedHtml = finishedTotal
+          ? '<span class="day-completions" title="' + escapeHtml(finishedTitle).replace(/\n/g, '&#10;') + '">' + finishedTotal + '</span>'
+          : '';
         var eventsHtml = dayEvents.map(function(item) {
           if (item.kind === 'release') {
             var chipClass = item.project === 'RDAR' ? 'rdar' : 'ida';
@@ -742,6 +809,7 @@
           + '<button type="button" class="day-add" onclick="event.stopPropagation(); openCreateModal(\'' + dateStr + '\')" title="Add event">+</button>'
           + '</div>'
           + '<div class="day-events">' + eventsHtml + '</div>'
+          + finishedHtml
           + '</div>'
         );
       }
@@ -749,6 +817,32 @@
       document.getElementById('calendarGrid').innerHTML = cells.join('');
       document.getElementById('count').textContent =
         visibleReleases().length + ' releases, ' + visibleCustomEvents().length + ' custom events';
+      loadCompletionCounts();
+    }
+
+    function visibleGridRange() {
+      var firstOfMonth = new Date(viewYear, viewMonth, 1);
+      var gridStart = new Date(viewYear, viewMonth, 1 - firstOfMonth.getDay());
+      var gridEnd = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + 41);
+      return { start: isoDate(gridStart), end: isoDate(gridEnd) };
+    }
+
+    function loadCompletionCounts() {
+      if (viewYear == null || viewMonth == null) return;
+      var range = visibleGridRange();
+      var key = range.start + ':' + range.end;
+      if (key === loadedCompletionKey) return;
+      var token = ++completionToken;
+      fetch('/api/calendar/completions?start=' + encodeURIComponent(range.start) + '&end=' + encodeURIComponent(range.end))
+        .then(function(response) { return response.json().then(function(data) { return { ok: response.ok, data: data }; }); })
+        .then(function(result) {
+          if (token !== completionToken) return;
+          if (!result.ok || result.data.error) return;
+          loadedCompletionKey = key;
+          completionCounts = result.data.counts || {};
+          renderCalendar();
+        })
+        .catch(function() {});
     }
 
     function shiftMonth(delta) {
@@ -957,6 +1051,7 @@
     });
 
     renderWeekdays();
+    restoreCalendarFilters();
     loadCalendar();
   </script>
 </body>
