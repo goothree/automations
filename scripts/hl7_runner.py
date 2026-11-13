@@ -3,6 +3,7 @@
 Examples:
     python scripts/hl7_runner.py list
     python scripts/hl7_runner.py admit --facility vinelandqa --unit testrack01 --room slot04
+    python scripts/hl7_runner.py --env qa admit --facility vinelandqa --unit testrack01 --room slot04
     python scripts/hl7_runner.py run a01 --facility vinelandqa --unit testrack01 --room slot04 --dry-run
 """
 
@@ -38,6 +39,10 @@ from postman_runner import (
 REPO_ROOT = SCRIPTS_DIR.parent
 DEFAULT_CATALOG = REPO_ROOT / "scripts/hl7/messages.json"
 DEFAULT_ADMIT_STATE = REPO_ROOT / "scripts/hl7/admit_state.json"
+ENVIRONMENTS = {
+    "lab": {"host": "34.74.235.204", "port": "2575"},
+    "qa": {"host": "136.107.162.112", "port": "2575"},
+}
 ENV_FILES = (
     REPO_ROOT / "scripts/hl7/.env",
     REPO_ROOT / "scripts/postman/.env",
@@ -78,6 +83,7 @@ def load_env() -> None:
 def load_config() -> dict[str, str]:
     load_env()
     return {
+        "hl7_env": "lab",
         "hl7_host": os.getenv("HL7_HOST", "").strip(),
         "hl7_port": os.getenv("HL7_PORT", "2575").strip(),
         "hl7_url": os.getenv("HL7_URL", "").strip(),
@@ -87,6 +93,42 @@ def load_config() -> dict[str, str]:
             "ADMIT_STATE_PATH", str(DEFAULT_ADMIT_STATE)
         ),
     }
+
+
+def extract_hl7_env(argv: list[str]) -> tuple[str, list[str]]:
+    """Pull --env lab|qa from anywhere in argv. Default is lab."""
+    env_name = "lab"
+    remaining: list[str] = []
+    index = 0
+    while index < len(argv):
+        arg = argv[index]
+        if arg == "--env":
+            if index + 1 >= len(argv):
+                raise ValueError("--env requires lab or qa")
+            env_name = argv[index + 1]
+            index += 2
+            continue
+        if arg.startswith("--env="):
+            env_name = arg.split("=", 1)[1]
+            index += 1
+            continue
+        remaining.append(arg)
+        index += 1
+
+    if env_name not in ENVIRONMENTS:
+        choices = ", ".join(ENVIRONMENTS)
+        raise ValueError(f"--env must be one of: {choices}")
+    return env_name, remaining
+
+
+def apply_hl7_env(config: dict[str, str], env_name: str) -> dict[str, str]:
+    selected = ENVIRONMENTS[env_name]
+    updated = dict(config)
+    updated["hl7_env"] = env_name
+    updated["hl7_host"] = selected["host"]
+    updated["hl7_port"] = selected["port"]
+    updated["hl7_url"] = ""
+    return updated
 
 
 def resolve_admit_state_path(config: dict[str, str]) -> Path:
@@ -823,6 +865,7 @@ def print_message_summary(
     transport: str,
     destination: str,
     outcome: str,
+    environment: str = "",
     detail: str = "",
     mrn_display: str | None = None,
     account_display: str | None = None,
@@ -832,6 +875,8 @@ def print_message_summary(
 ) -> None:
     print(f"\n{message.name} ({message.event})")
     print(f"  Outcome:   {outcome}")
+    if environment:
+        print(f"  Environment: {environment}")
     print(f"  Transport: {transport}")
     print(f"  Target:    {destination}")
     print(f"  Facility:  {facility}")
@@ -982,6 +1027,7 @@ def deliver_hl7_message(
         "prior_facility": prior_facility,
         "prior_unit": prior_unit,
         "prior_room": prior_room,
+        "environment": config.get("hl7_env", ""),
     }
 
     if args.dry_run:
@@ -1617,6 +1663,9 @@ CANCEL DISCHARGE ORDER OPTIONS
   --order-id ID                Placer order ID override (default: saved last_order_id)
 
 SHARED OPTIONS
+  --env lab|qa                 Target environment (default: lab)
+                               lab  34.74.235.204:2575
+                               qa   136.107.162.112:2575
   --dry-run                    Build message and report without sending
   --print                      Print HL7 message to stdout
   --output PATH                Write HL7 message to a file
@@ -1626,6 +1675,7 @@ EXAMPLES
   ./run_hl7 help
   ./run_hl7 list
   ./run_hl7 admit --facility vinelandqa --unit testrack01 --room slot04
+  ./run_hl7 --env qa admit --facility vinelandqa --unit testrack01 --room slot04
   ./run_hl7 a01 --facility vinelandqa --unit testrack01 --room slot04 --dry-run --print
   ./run_hl7 transfer --facility vinelandqa --unit testrack02 --room slot05
   ./run_hl7 discharge --dry-run
@@ -1638,8 +1688,9 @@ EXAMPLES
   ./run_hl7 cancel
 
 SETUP
-  cp scripts/hl7/.env.example scripts/hl7/.env
-  Set HL7_HOST + HL7_PORT for MLLP, or HL7_URL for HTTP
+  --env selects the HL7 host. lab is the default.
+  lab  34.74.235.204:2575
+  qa   136.107.162.112:2575
 
 CATALOG
   scripts/hl7/messages.json
@@ -1747,10 +1798,17 @@ def normalize_argv(argv: list[str] | None) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    argv = normalize_argv(argv)
+    raw_argv = list(sys.argv[1:] if argv is None else argv)
+    try:
+        env_name, raw_argv = extract_hl7_env(raw_argv)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    argv = normalize_argv(raw_argv)
     parser = build_parser()
     args = parser.parse_args(argv)
-    config = load_config()
+    config = apply_hl7_env(load_config(), env_name)
 
     if args.command == "help":
         cmd_help()
