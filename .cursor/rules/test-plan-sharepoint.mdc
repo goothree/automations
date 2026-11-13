@@ -68,3 +68,18 @@ When a test plan involves simulating HTTP errors, auth failures, timeouts, or AP
 Also mention Requestly in relevant test-case steps (e.g. "enable Requestly 401 rule" / "disable rule to restore API") and in sign-off (Method A / B / C / D / **E**).
 
 **When to include:** auth/token refresh (401), permission errors (403), server errors (500), call failures, network timeouts, and any ticket where DevTools offline/block is already listed as an option.
+
+## Testpad script folder
+
+Before creating a Testpad script, list the project's upper-level folders and compare them to `TESTPAD_KNOWN_UPPER_FOLDERS` in `jira-dashboard/.env`.
+
+If that list has no new upper-level folder, create the script without asking:
+
+| Ticket key | Testpad folder |
+|------------|----------------|
+| `IDA-*` | `f197` (`TESTPAD_FOLDER_IDA`) |
+| `RDAR-*` | `f198` (`TESTPAD_FOLDER_RDAR`) |
+
+Prompt only when a new upper-level folder is present, such as `v2026-12`. Do not create the script yet. Tell the user the new folder's name and id, and ask which folders IDA and RDAR scripts should use from here on. After they answer, save `TESTPAD_FOLDER_IDA` and `TESTPAD_FOLDER_RDAR`, add the new upper-level folder to `TESTPAD_KNOWN_UPPER_FOLDERS`, then create the script.
+
+Use `new_upper_level_folders()` and `create_script(..., issue_key=...)` in `jira-dashboard`. `create_script` refuses to create while a new upper-level folder is unknown. Do not put an IDA script in the RDAR folder, or the reverse.

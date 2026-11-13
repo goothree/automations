@@ -1,6 +1,7 @@
 """
 Orchestrate: fetch Jira issue → generate test steps → create Testpad script → set Jira Test Script field.
 """
+from config import testpad_folder_for_issue
 from jira_client import get_issue_full, set_test_script_url
 from testpad_client import create_script
 from test_generator import generate_test_steps
@@ -28,9 +29,18 @@ def run(issue_key):
     steps = generate_test_steps(issue=issue)
     script_name = f"[{issue_key}] {summary[:60]}" if summary else f"[{issue_key}] Test script"
 
-    result = create_script(script_name, steps)
+    result = create_script(
+        script_name,
+        steps,
+        folder_id=testpad_folder_for_issue(issue_key),
+        issue_key=issue_key,
+    )
     if "error" in result:
-        return {"success": False, "error": result["error"]}
+        outcome = {"success": False, "error": result["error"]}
+        if result.get("needs_folder_prompt"):
+            outcome["needs_folder_prompt"] = True
+            outcome["new_folders"] = result.get("new_folders") or []
+        return outcome
 
     script_url = result.get("script_url") or ""
     if not script_url:
